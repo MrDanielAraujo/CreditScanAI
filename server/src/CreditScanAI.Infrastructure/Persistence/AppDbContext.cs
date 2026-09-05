@@ -17,6 +17,8 @@ public class AppDbContext : DbContext
     public DbSet<AccountType> AccountTypes => Set<AccountType>();
     public DbSet<AccountSubtype> AccountSubtypes => Set<AccountSubtype>();
     public DbSet<TypeSubtypeCompatibility> TypeSubtypeCompatibilities => Set<TypeSubtypeCompatibility>();
+    public DbSet<SourceAccount> SourceAccounts => Set<SourceAccount>();
+    public DbSet<AccountValue> AccountValues => Set<AccountValue>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

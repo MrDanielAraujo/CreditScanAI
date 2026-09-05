@@ -26,6 +26,11 @@
     <ProjectReference Include="..\..\src\CreditScanAI.Api\CreditScanAI.Api.csproj" />
     <ProjectReference Include="..\..\src\CreditScanAI.Infrastructure\CreditScanAI.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\CreditScanAI.Domain\CreditScanAI.Domain.csproj" />
+    <ProjectReference Include="..\..\src\CreditScanAI.PdfPipeline\CreditScanAI.PdfPipeline.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="TestData\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

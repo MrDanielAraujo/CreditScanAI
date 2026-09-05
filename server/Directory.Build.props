@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <!-- Repo sits on a network volume; concurrent access (e.g. the IDE's own
+         VCS polling) intermittently locks .git/* files while MSBuild's
+         built-in SourceLink/git-info probing tries to read them, breaking
+         the build. We don't rely on embedded git metadata, so skip it. -->
+    <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
+  </PropertyGroup>
+</Project>
