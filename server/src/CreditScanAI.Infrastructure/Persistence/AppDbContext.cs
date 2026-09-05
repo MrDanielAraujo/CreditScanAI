@@ -1,0 +1,25 @@
+using CreditScanAI.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace CreditScanAI.Infrastructure.Persistence;
+
+public class AppDbContext : DbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    {
+    }
+
+    public DbSet<Tenant> Tenants => Set<Tenant>();
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Company> Companies => Set<Company>();
+    public DbSet<Period> Periods => Set<Period>();
+    public DbSet<Document> Documents => Set<Document>();
+    public DbSet<AccountType> AccountTypes => Set<AccountType>();
+    public DbSet<AccountSubtype> AccountSubtypes => Set<AccountSubtype>();
+    public DbSet<TypeSubtypeCompatibility> TypeSubtypeCompatibilities => Set<TypeSubtypeCompatibility>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+    }
+}

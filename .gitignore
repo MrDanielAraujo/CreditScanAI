@@ -1,0 +1,23 @@
+# .NET
+server/**/bin/
+server/**/obj/
+*.user
+
+# Node
+client/node_modules/
+client/dist/
+client/dist-ssr/
+client/*.local
+
+# Env
+.env
+.env.local
+
+# OS
+.DS_Store
+
+# IDE
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
