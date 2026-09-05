@@ -11,7 +11,7 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(AppDbContext db, CancellationToken cancellationToken = default)
     {
-        var tenant = await db.Tenants.FirstOrDefaultAsync(cancellationToken);
+        var tenant = await db.Tenants.OrderBy(t => t.CreatedAt).FirstOrDefaultAsync(cancellationToken);
         if (tenant is null)
         {
             tenant = new Tenant
