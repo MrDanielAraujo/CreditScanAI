@@ -58,6 +58,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+const string FrontendCorsPolicy = "Frontend";
+builder.Services.AddCors(options =>
+{
+    // Dev-only: the Vite dev server's origin. Revisit with a real
+    // per-environment allowlist when this goes beyond local development.
+    options.AddPolicy(FrontendCorsPolicy, policy => policy
+        .WithOrigins("http://localhost:5173")
+        .AllowAnyHeader()
+        .AllowAnyMethod());
+});
+
 var rateLimitSection = builder.Configuration.GetSection("RateLimiting");
 var permitLimit = rateLimitSection.GetValue("PermitLimit", 1000);
 var windowMinutes = rateLimitSection.GetValue("WindowMinutes", 60);
@@ -92,6 +103,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors(FrontendCorsPolicy);
 
 app.UseRateLimiter();
 

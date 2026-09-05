@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using CreditScanAI.PdfPipeline.Models;
 
 namespace CreditScanAI.PdfPipeline.Hierarchy;
@@ -52,8 +53,11 @@ public sealed class TypeSubtypeDetector : ITypeSubtypeDetector
     {
         var normalizedName = Normalize(node.OriginalName);
 
-        var typeMatch = TypeKeywords.FirstOrDefault(kv => normalizedName.Contains(kv.Keyword));
-        var subtypeMatch = SubtypeKeywords.FirstOrDefault(kv => normalizedName.Contains(kv.Keyword));
+        // Whole-word match: a plain substring check would misfire on e.g.
+        // "Despesas antecipadas" (an ATIVO/prepaid-expense line, not a DRE
+        // entry) just because it contains "DESPESA".
+        var typeMatch = TypeKeywords.FirstOrDefault(kv => MatchesWholeWords(normalizedName, kv.Keyword));
+        var subtypeMatch = SubtypeKeywords.FirstOrDefault(kv => MatchesWholeWords(normalizedName, kv.Keyword));
 
         if (typeMatch.Type is not null)
         {
@@ -82,6 +86,9 @@ public sealed class TypeSubtypeDetector : ITypeSubtypeDetector
             ClassifyNode(child, node.InferredType, node.InferredSubtype);
         }
     }
+
+    private static bool MatchesWholeWords(string text, string keyword) =>
+        Regex.IsMatch(text, $@"\b{Regex.Escape(keyword)}\b");
 
     private static string Normalize(string text) => text.ToUpperInvariant();
 }

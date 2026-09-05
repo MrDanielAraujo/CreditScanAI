@@ -61,6 +61,12 @@ public class PdfExtractionPipelineTests
         var caixaEBancos = circulante.Children.Should().ContainSingle(a => a.OriginalName == "Caixa e bancos").Subject;
         caixaEBancos.InferredSubtype.Should().Be("CIRCULANTE");
 
+        // Regression: "Despesas antecipadas" (prepaid expenses, an ATIVO line)
+        // was misclassified as DRE by a naive substring match on "DESPESA".
+        var despesasAntecipadas = circulante.Children.Should().ContainSingle(a => a.OriginalName == "Despesas antecipadas").Subject;
+        despesasAntecipadas.InferredType.Should().Be("ATIVO");
+        despesasAntecipadas.InferredSubtype.Should().Be("CIRCULANTE");
+
         var consolidadoJun2020 = result.DetectedPeriods.Single(p => p.Date == new DateOnly(2020, 6, 30)).ColumnIndex;
         var caixaValue = result.AccountValues.Should().ContainSingle(v =>
             v.SourceAccountName == "Caixa e bancos" && v.ColumnIndex == consolidadoJun2020).Subject;
