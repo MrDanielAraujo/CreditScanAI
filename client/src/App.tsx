@@ -1,8 +1,12 @@
 import { Route, Routes } from 'react-router-dom'
 import { MainLayout } from './components/layout/MainLayout'
+import { AccountSubtypesPage } from './pages/AccountSubtypesPage'
+import { AccountTypesPage } from './pages/AccountTypesPage'
+import { ChartOfAccountsPage } from './pages/ChartOfAccountsPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { ReviewPage } from './pages/ReviewPage'
+import { StandardAccountsPage } from './pages/StandardAccountsPage'
 import { UploadPage } from './pages/UploadPage'
 
 export function App() {
@@ -12,6 +16,10 @@ export function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/documents/upload" element={<UploadPage />} />
         <Route path="/review" element={<ReviewPage />} />
+        <Route path="/registrations/account-types" element={<AccountTypesPage />} />
+        <Route path="/registrations/account-subtypes" element={<AccountSubtypesPage />} />
+        <Route path="/registrations/chart-of-accounts" element={<ChartOfAccountsPage />} />
+        <Route path="/registrations/standard-accounts" element={<StandardAccountsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </MainLayout>

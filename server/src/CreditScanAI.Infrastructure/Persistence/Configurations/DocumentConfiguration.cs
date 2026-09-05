@@ -28,6 +28,7 @@ public class DocumentConfiguration : IEntityTypeConfiguration<Document>
         builder.Property(d => d.CreatedBy).HasColumnName("created_by");
         builder.Property(d => d.CreatedAt).HasColumnName("created_at");
         builder.Property(d => d.UpdatedAt).HasColumnName("updated_at");
+        builder.Property(d => d.ChartOfAccountsId).HasColumnName("chart_of_accounts_id");
 
         builder.HasOne(d => d.Tenant)
             .WithMany()
@@ -37,6 +38,11 @@ public class DocumentConfiguration : IEntityTypeConfiguration<Document>
         builder.HasOne(d => d.Company)
             .WithMany()
             .HasForeignKey(d => d.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(d => d.ChartOfAccounts)
+            .WithMany()
+            .HasForeignKey(d => d.ChartOfAccountsId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(d => new { d.TenantId, d.CompanyId }).HasDatabaseName("idx_documents_tenant_company");

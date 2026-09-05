@@ -1,6 +1,4 @@
-import type {
-  ApiResponse,
-} from '../types/api'
+import { apiGet, API_BASE_URL } from './apiClient'
 import type {
   Company,
   DocumentResultResponse,
@@ -8,22 +6,10 @@ import type {
   DocumentType,
   UploadDocumentResponse,
 } from '../types/documents'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5080'
-
-async function unwrap<T>(response: Response): Promise<T> {
-  const body: ApiResponse<T> = await response.json()
-
-  if (!response.ok || !body.success) {
-    throw new Error(body.error?.message ?? `HTTP ${response.status}`)
-  }
-
-  return body.data as T
-}
+import type { ApiResponse } from '../types/api'
 
 export async function listCompanies(): Promise<Company[]> {
-  const response = await fetch(`${API_BASE_URL}/api/companies`)
-  return unwrap<Company[]>(response)
+  return apiGet<Company[]>('/api/companies')
 }
 
 export async function uploadDocument(
@@ -41,15 +27,17 @@ export async function uploadDocument(
     body: form,
   })
 
-  return unwrap<UploadDocumentResponse>(response)
+  const body: ApiResponse<UploadDocumentResponse> = await response.json()
+  if (!response.ok || !body.success) {
+    throw new Error(body.error?.message ?? `HTTP ${response.status}`)
+  }
+  return body.data as UploadDocumentResponse
 }
 
 export async function getDocumentStatus(documentId: string): Promise<DocumentStatusResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/documents/${documentId}/status`)
-  return unwrap<DocumentStatusResponse>(response)
+  return apiGet<DocumentStatusResponse>(`/api/documents/${documentId}/status`)
 }
 
 export async function getDocumentResult(documentId: string): Promise<DocumentResultResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/documents/${documentId}/result`)
-  return unwrap<DocumentResultResponse>(response)
+  return apiGet<DocumentResultResponse>(`/api/documents/${documentId}/result`)
 }

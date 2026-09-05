@@ -22,6 +22,13 @@ public class Document
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
+    /// <summary>
+    /// Which ChartOfAccounts was used to classify this document (Fase 3) -
+    /// set once classification runs, for traceability. Null until then.
+    /// </summary>
+    public Guid? ChartOfAccountsId { get; set; }
+
     public Tenant? Tenant { get; set; }
     public Company? Company { get; set; }
+    public ChartOfAccounts? ChartOfAccounts { get; set; }
 }

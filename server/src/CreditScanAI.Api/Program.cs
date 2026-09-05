@@ -37,6 +37,7 @@ builder.Services.AddSingleton<IDocumentStorage, LocalDiskDocumentStorage>();
 builder.Services.AddSingleton<IDocumentProcessingQueue, DocumentProcessingQueue>();
 builder.Services.AddScoped<DocumentProcessingService>();
 builder.Services.AddHostedService<DocumentProcessingBackgroundService>();
+builder.Services.AddScoped<ICurrentTenantProvider, CurrentTenantProvider>();
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("Jwt:Key não configurada.");

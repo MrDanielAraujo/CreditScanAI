@@ -34,9 +34,12 @@ public class DbSeederTests
 
         db.AccountSubtypes.Where(a => a.TenantId == tenant.Id)
             .Select(a => a.Code)
-            .Should().BeEquivalentTo("CIRCULANTE", "NAO_CIRCULANTE", "PERMANENTE", "PL");
+            .Should().BeEquivalentTo("CIRCULANTE", "NAO_CIRCULANTE", "PERMANENTE", "PL", "GERAL");
 
-        db.TypeSubtypeCompatibilities.Count(c => c.TenantId == tenant.Id).Should().Be(6);
+        db.TypeSubtypeCompatibilities.Count(c => c.TenantId == tenant.Id).Should().Be(7);
+
+        var chart = db.ChartOfAccounts.Should().ContainSingle(c => c.TenantId == tenant.Id && c.IsDefault).Subject;
+        db.StandardAccounts.Count(a => a.ChartOfAccountsId == chart.Id).Should().Be(18);
     }
 
     [Fact]
@@ -46,12 +49,15 @@ public class DbSeederTests
         await using var db = CreateInMemoryContext();
         await DbSeeder.SeedAsync(db);
         var accountTypeCountAfterFirstSeed = await db.AccountTypes.CountAsync();
+        var standardAccountCountAfterFirstSeed = await db.StandardAccounts.CountAsync();
+        var chartCountAfterFirstSeed = await db.ChartOfAccounts.CountAsync();
 
         // Act
         await DbSeeder.SeedAsync(db);
 
         // Assert
-        var accountTypeCountAfterSecondSeed = await db.AccountTypes.CountAsync();
-        accountTypeCountAfterSecondSeed.Should().Be(accountTypeCountAfterFirstSeed);
+        (await db.AccountTypes.CountAsync()).Should().Be(accountTypeCountAfterFirstSeed);
+        (await db.StandardAccounts.CountAsync()).Should().Be(standardAccountCountAfterFirstSeed);
+        (await db.ChartOfAccounts.CountAsync()).Should().Be(chartCountAfterFirstSeed);
     }
 }
