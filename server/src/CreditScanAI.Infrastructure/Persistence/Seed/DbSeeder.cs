@@ -25,6 +25,25 @@ public static class DbSeeder
             await db.SaveChangesAsync(cancellationToken);
         }
 
+        var hasCompany = await db.Companies.AnyAsync(c => c.TenantId == tenant.Id, cancellationToken);
+        if (!hasCompany)
+        {
+            // There's no Company CRUD API yet (not a Fase 1/2 deliverable), and
+            // document upload requires a company_id - seed one so the upload
+            // flow is testable end-to-end in dev.
+            db.Companies.Add(new Company
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenant.Id,
+                Code = "DEFAULT",
+                Name = "Empresa Padrão",
+                ReportingCurrency = "BRL",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
         var hasAccountTypes = await db.AccountTypes.AnyAsync(a => a.TenantId == tenant.Id, cancellationToken);
         if (hasAccountTypes)
         {

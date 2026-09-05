@@ -5,6 +5,11 @@ using FluentAssertions;
 
 namespace CreditScanAI.Tests.Api;
 
+// Serilog's Program.cs bootstrap logger is process-static; running two real
+// hosts (WebApplicationFactory<Program>) at once races on freezing it. Share
+// one collection with every other such test class so xUnit runs them
+// sequentially instead of in parallel.
+[Collection(ApiHostTestCollection.Name)]
 public class HealthEndpointTests : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly HttpClient _client;

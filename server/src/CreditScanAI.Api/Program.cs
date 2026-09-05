@@ -1,8 +1,10 @@
 using System.Text;
 using System.Threading.RateLimiting;
 using CreditScanAI.Api.Middleware;
+using CreditScanAI.Api.Services;
 using CreditScanAI.Infrastructure.Persistence;
 using CreditScanAI.Infrastructure.Persistence.Seed;
+using CreditScanAI.PdfPipeline;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +30,13 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddPdfPipeline();
+builder.Services.Configure<DocumentStorageOptions>(builder.Configuration.GetSection("Storage"));
+builder.Services.AddSingleton<IDocumentStorage, LocalDiskDocumentStorage>();
+builder.Services.AddSingleton<IDocumentProcessingQueue, DocumentProcessingQueue>();
+builder.Services.AddScoped<DocumentProcessingService>();
+builder.Services.AddHostedService<DocumentProcessingBackgroundService>();
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("Jwt:Key não configurada.");

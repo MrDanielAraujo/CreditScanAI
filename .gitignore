@@ -3,6 +3,9 @@ server/**/bin/
 server/**/obj/
 *.user
 
+# Uploaded documents (local disk storage, dev only)
+server/src/CreditScanAI.Api/storage/
+
 # Node
 client/node_modules/
 client/dist/
