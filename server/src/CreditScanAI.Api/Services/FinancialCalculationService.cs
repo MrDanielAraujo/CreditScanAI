@@ -20,6 +20,19 @@ public class FinancialCalculationService
     // + PL balanceada, igual ao critério de 04_MOTOR_CALCULOS.md.
     public const decimal EquationTolerance = 1m;
 
+    // Chaves que são somas diretas de valores classificados - podem ser
+    // somadas entre empresas na consolidação (Fase 5). As chaves restantes
+    // (margens, índices, variância da equação) são razões/derivadas e
+    // precisam ser recalculadas a partir dos totais já consolidados, nunca
+    // somadas diretamente entre empresas - ver ApplyDerivedValues.
+    public static readonly IReadOnlyList<string> AdditiveKeys =
+    [
+        CalculationKeys.AtivoCirculante, CalculationKeys.AtivoNaoCirculante, CalculationKeys.AtivoTotal,
+        CalculationKeys.PassivoCirculante, CalculationKeys.PassivoNaoCirculante, CalculationKeys.PassivoTotal, CalculationKeys.PatrimonioLiquido,
+        CalculationKeys.ReceitaTotal, CalculationKeys.CustoTotal, CalculationKeys.DespesaTotal, CalculationKeys.DepreciacaoAmortizacaoTotal,
+        CalculationKeys.ResultadoPeriodo, CalculationKeys.ResultadoAntesDepreciacaoAmortizacao
+    ];
+
     private readonly AppDbContext _db;
 
     public FinancialCalculationService(AppDbContext db) => _db = db;
@@ -70,11 +83,6 @@ public class FinancialCalculationService
         // resultado é somar de volta a magnitude (subtrair um valor negativo).
         var resultadoAntesDepreciacaoAmortizacao = resultadoPeriodo - depreciacaoAmortizacaoTotal;
 
-        var margemResultado = receitaTotal != 0 ? Math.Round(resultadoPeriodo / receitaTotal * 100, 4) : 0m;
-        var liquidezCorrente = passivoCirculante != 0 ? Math.Round(ativoCirculante / passivoCirculante, 4) : 0m;
-        var indiceEndividamento = patrimonioLiquido != 0 ? Math.Round(passivoTotal / patrimonioLiquido, 4) : 0m;
-        var equacaoVariancia = ativoTotal - (passivoTotal + patrimonioLiquido);
-
         var values = new Dictionary<string, decimal>
         {
             [CalculationKeys.AtivoCirculante] = ativoCirculante,
@@ -89,12 +97,10 @@ public class FinancialCalculationService
             [CalculationKeys.DespesaTotal] = despesaTotal,
             [CalculationKeys.DepreciacaoAmortizacaoTotal] = depreciacaoAmortizacaoTotal,
             [CalculationKeys.ResultadoPeriodo] = resultadoPeriodo,
-            [CalculationKeys.MargemResultado] = margemResultado,
-            [CalculationKeys.ResultadoAntesDepreciacaoAmortizacao] = resultadoAntesDepreciacaoAmortizacao,
-            [CalculationKeys.LiquidezCorrente] = liquidezCorrente,
-            [CalculationKeys.IndiceEndividamento] = indiceEndividamento,
-            [CalculationKeys.EquacaoVariancia] = equacaoVariancia
+            [CalculationKeys.ResultadoAntesDepreciacaoAmortizacao] = resultadoAntesDepreciacaoAmortizacao
         };
+
+        ApplyDerivedValues(values);
 
         var existing = await _db.CalculatedFinancialValues
             .Where(v => v.CompanyId == companyId && v.PeriodId == periodId)
@@ -127,5 +133,29 @@ public class FinancialCalculationService
         await _db.SaveChangesAsync(cancellationToken);
 
         return values;
+    }
+
+    /// <summary>
+    /// Recalcula as chaves derivadas (margens, índices, variância da
+    /// equação) a partir das chaves aditivas já presentes em <paramref
+    /// name="values"/> - reaproveitado tanto por CalculateAsync (totais de
+    /// uma empresa) quanto por ConsolidationService (totais já consolidados
+    /// entre empresas), já que essas razões nunca podem ser somadas
+    /// diretamente entre empresas.
+    /// </summary>
+    public static void ApplyDerivedValues(Dictionary<string, decimal> values)
+    {
+        var ativoCirculante = values.GetValueOrDefault(CalculationKeys.AtivoCirculante);
+        var ativoTotal = values.GetValueOrDefault(CalculationKeys.AtivoTotal);
+        var passivoCirculante = values.GetValueOrDefault(CalculationKeys.PassivoCirculante);
+        var passivoTotal = values.GetValueOrDefault(CalculationKeys.PassivoTotal);
+        var patrimonioLiquido = values.GetValueOrDefault(CalculationKeys.PatrimonioLiquido);
+        var receitaTotal = values.GetValueOrDefault(CalculationKeys.ReceitaTotal);
+        var resultadoPeriodo = values.GetValueOrDefault(CalculationKeys.ResultadoPeriodo);
+
+        values[CalculationKeys.MargemResultado] = receitaTotal != 0 ? Math.Round(resultadoPeriodo / receitaTotal * 100, 4) : 0m;
+        values[CalculationKeys.LiquidezCorrente] = passivoCirculante != 0 ? Math.Round(ativoCirculante / passivoCirculante, 4) : 0m;
+        values[CalculationKeys.IndiceEndividamento] = patrimonioLiquido != 0 ? Math.Round(passivoTotal / patrimonioLiquido, 4) : 0m;
+        values[CalculationKeys.EquacaoVariancia] = ativoTotal - (passivoTotal + patrimonioLiquido);
     }
 }

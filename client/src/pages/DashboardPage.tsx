@@ -1,68 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Button } from '../components/common/Button'
+import { FinancialValueGrid } from '../components/financial/FinancialValueGrid'
+import { BALANCO_VALUES, DRE_VALUES, formatFinancialValue, INDICADORES } from '../components/financial/financialValueDefinitions'
 import { calculationsApi } from '../services/calculationsApi'
 import { listCompanies } from '../services/documentsApi'
 import type { CalculationResult, Period } from '../types/calculations'
 import type { Company } from '../types/documents'
 
-type ValueFormat = 'currency' | 'percent' | 'ratio'
-
-interface ValueDefinition {
-  key: string
-  label: string
-  format: ValueFormat
-}
-
-const BALANCO_VALUES: ValueDefinition[] = [
-  { key: 'ATIVO_CIRCULANTE', label: 'Ativo Circulante', format: 'currency' },
-  { key: 'ATIVO_NAO_CIRCULANTE', label: 'Ativo Não Circulante', format: 'currency' },
-  { key: 'ATIVO_TOTAL', label: 'Ativo Total', format: 'currency' },
-  { key: 'PASSIVO_CIRCULANTE', label: 'Passivo Circulante', format: 'currency' },
-  { key: 'PASSIVO_NAO_CIRCULANTE', label: 'Passivo Não Circulante', format: 'currency' },
-  { key: 'PASSIVO_TOTAL', label: 'Passivo Total', format: 'currency' },
-  { key: 'PATRIMONIO_LIQUIDO', label: 'Patrimônio Líquido', format: 'currency' },
-]
-
-const DRE_VALUES: ValueDefinition[] = [
-  { key: 'RECEITA_TOTAL', label: 'Receita Total', format: 'currency' },
-  { key: 'CUSTO_TOTAL', label: 'Custo Total', format: 'currency' },
-  { key: 'DESPESA_TOTAL', label: 'Despesa Total', format: 'currency' },
-  { key: 'DEPRECIACAO_AMORTIZACAO_TOTAL', label: 'Depreciação e Amortização', format: 'currency' },
-]
-
-const INDICADORES: ValueDefinition[] = [
-  { key: 'RESULTADO_PERIODO', label: 'Resultado do Período', format: 'currency' },
-  { key: 'RESULTADO_ANTES_DEPRECIACAO_AMORTIZACAO', label: 'Resultado Antes de Depreciação e Amortização', format: 'currency' },
-  { key: 'MARGEM_RESULTADO', label: 'Margem de Resultado', format: 'percent' },
-  { key: 'LIQUIDEZ_CORRENTE', label: 'Liquidez Corrente', format: 'ratio' },
-  { key: 'INDICE_ENDIVIDAMENTO', label: 'Índice de Endividamento', format: 'ratio' },
-]
-
-function formatValue(value: number | undefined, format: ValueFormat): string {
-  if (value === undefined) return '—'
-  if (format === 'currency') return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-  if (format === 'percent') return `${value.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`
-  return value.toLocaleString('pt-BR', { maximumFractionDigits: 4 })
-}
-
 function periodLabel(period: Period): string {
   return period.periodType === 'Annual' ? `${period.year} (Anual)` : `${period.year} T${period.quarter}`
-}
-
-function ValueGrid({ title, values, result }: { title: string; values: ValueDefinition[]; result: CalculationResult }) {
-  return (
-    <div className="mt-6">
-      <h2 className="text-sm font-semibold uppercase text-neutral">{title}</h2>
-      <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
-        {values.map((v) => (
-          <div key={v.key} className="rounded-md border border-neutral/20 p-3">
-            <p className="text-xs text-neutral">{v.label}</p>
-            <p className="mt-1 text-lg font-semibold">{formatValue(result.values[v.key], v.format)}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
 }
 
 export function DashboardPage() {
@@ -178,12 +124,12 @@ export function DashboardPage() {
       {!loading && result && (
         <div>
           <div className={['mt-6 inline-block rounded-md px-3 py-2 text-sm', result.equationBalanced ? 'bg-success/10 text-success' : 'bg-error/10 text-error'].join(' ')}>
-            Equação Ativo = Passivo + PL: {result.equationBalanced ? 'balanceada' : `desbalanceada (diferença de ${formatValue(result.equationVariance, 'currency')})`}
+            Equação Ativo = Passivo + PL: {result.equationBalanced ? 'balanceada' : `desbalanceada (diferença de ${formatFinancialValue(result.equationVariance, 'currency')})`}
           </div>
 
-          <ValueGrid title="Balanço" values={BALANCO_VALUES} result={result} />
-          <ValueGrid title="DRE" values={DRE_VALUES} result={result} />
-          <ValueGrid title="Indicadores" values={INDICADORES} result={result} />
+          <FinancialValueGrid title="Balanço" definitions={BALANCO_VALUES} values={result.values} />
+          <FinancialValueGrid title="DRE" definitions={DRE_VALUES} values={result.values} />
+          <FinancialValueGrid title="Indicadores" definitions={INDICADORES} values={result.values} />
         </div>
       )}
     </div>

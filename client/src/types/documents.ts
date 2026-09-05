@@ -6,6 +6,21 @@ export interface Company {
   id: string
   code: string
   name: string
+  legalName: string | null
+  cnpj: string | null
+  industry: string | null
+  fiscalYearEnd: string | null
+  reportingCurrency: string
+}
+
+export interface UpsertCompanyRequest {
+  code: string
+  name: string
+  legalName?: string | null
+  cnpj?: string | null
+  industry?: string | null
+  fiscalYearEnd?: string | null
+  reportingCurrency?: string | null
 }
 
 export interface UploadDocumentResponse {

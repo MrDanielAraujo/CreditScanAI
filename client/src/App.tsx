@@ -3,6 +3,8 @@ import { MainLayout } from './components/layout/MainLayout'
 import { AccountSubtypesPage } from './pages/AccountSubtypesPage'
 import { AccountTypesPage } from './pages/AccountTypesPage'
 import { ChartOfAccountsPage } from './pages/ChartOfAccountsPage'
+import { CompaniesPage } from './pages/CompaniesPage'
+import { ConsolidationPage } from './pages/ConsolidationPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { ReviewPage } from './pages/ReviewPage'
@@ -16,6 +18,8 @@ export function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/documents/upload" element={<UploadPage />} />
         <Route path="/review" element={<ReviewPage />} />
+        <Route path="/consolidation" element={<ConsolidationPage />} />
+        <Route path="/registrations/companies" element={<CompaniesPage />} />
         <Route path="/registrations/account-types" element={<AccountTypesPage />} />
         <Route path="/registrations/account-subtypes" element={<AccountSubtypesPage />} />
         <Route path="/registrations/chart-of-accounts" element={<ChartOfAccountsPage />} />

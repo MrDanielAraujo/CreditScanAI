@@ -4,9 +4,11 @@ const links = [
   { to: '/', label: 'Dashboard' },
   { to: '/documents/upload', label: 'Upload' },
   { to: '/review', label: 'Revisão' },
+  { to: '/consolidation', label: 'Consolidação' },
 ]
 
 const registrationLinks = [
+  { to: '/registrations/companies', label: 'Empresas' },
   { to: '/registrations/chart-of-accounts', label: 'Planos de Contas' },
   { to: '/registrations/standard-accounts', label: 'Contas' },
   { to: '/registrations/account-types', label: 'Tipos' },
