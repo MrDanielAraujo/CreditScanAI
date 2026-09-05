@@ -114,10 +114,48 @@ public class ClassificationsControllerTests : IClassFixture<DocumentsApiWebAppli
         var response = await _client.GetFromJsonAsync<ApiResponse<ClassificationDetailResponse>>($"/api/classifications/{classificationId}");
 
         response!.Data!.ClassificationId.Should().Be(classificationId);
+        response.Data!.ChartOfAccountsId.Should().Be(chartId);
         response.Data!.SourceAccount.OriginalName.Should().Be("Conta Detalhe");
         response.Data!.SuggestedStandardAccount.Should().NotBeNull();
         response.Data!.SuggestedStandardAccount!.Id.Should().Be(standardAccountId);
         response.Data!.ReviewStatus.Should().Be("NeedsReview");
+    }
+
+    [Fact]
+    public async Task Reject_ClearsSuggestionAndMarksAsRejected()
+    {
+        var (tenantId, _, chartId, documentId) = await SeedTenantCompanyDocumentAsync();
+        var (_, _, classificationId) = await SeedNeedsReviewClassificationAsync(tenantId, documentId, chartId, "Conta Rejeitar");
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/classifications/{classificationId}/reject",
+            new RejectClassificationRequest("Não corresponde a nenhuma conta padrão"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<RejectClassificationResponse>>();
+        body!.Data!.ReviewStatus.Should().Be("Rejected");
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var persisted = await db.AccountClassifications.FirstAsync(c => c.Id == classificationId);
+        persisted.ReviewStatus.Should().Be(ClassificationReviewStatus.Rejected);
+        persisted.StandardAccountId.Should().BeNull();
+        persisted.ConfidenceScore.Should().Be(0m);
+        persisted.ReviewNotes.Should().Be("Não corresponde a nenhuma conta padrão");
+    }
+
+    [Fact]
+    public async Task Reject_DoesNotAppearInPendingListAfterwards()
+    {
+        var (tenantId, _, chartId, documentId) = await SeedTenantCompanyDocumentAsync();
+        var (_, _, classificationId) = await SeedNeedsReviewClassificationAsync(tenantId, documentId, chartId, "Conta Rejeitar Fila");
+
+        await _client.PostAsJsonAsync($"/api/classifications/{classificationId}/reject", new RejectClassificationRequest(null));
+
+        var response = await _client.GetFromJsonAsync<ApiResponse<PendingClassificationsResponse>>(
+            $"/api/classifications/pending?documentId={documentId}");
+
+        response!.Data!.Items.Should().NotContain(i => i.ClassificationId == classificationId);
     }
 
     [Fact]

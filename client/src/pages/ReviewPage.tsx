@@ -1,8 +1,249 @@
+import { useEffect, useState } from 'react'
+import { Button } from '../components/common/Button'
+import { classificationsApi } from '../services/classificationsApi'
+import { listCompanies } from '../services/documentsApi'
+import { standardAccountsApi } from '../services/registrationsApi'
+import type { ClassificationDetail, PendingClassification } from '../types/classifications'
+import type { Company } from '../types/documents'
+import type { StandardAccount } from '../types/registrations'
+
 export function ReviewPage() {
+  const [companies, setCompanies] = useState<Company[]>([])
+  const [companyId, setCompanyId] = useState('')
+
+  const [items, setItems] = useState<PendingClassification[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [listLoading, setListLoading] = useState(true)
+  const [listError, setListError] = useState<string | null>(null)
+
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [detail, setDetail] = useState<ClassificationDetail | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [standardAccounts, setStandardAccounts] = useState<StandardAccount[]>([])
+  const [overrideAccountId, setOverrideAccountId] = useState('')
+  const [reason, setReason] = useState('')
+
+  const [actionLoading, setActionLoading] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+
+  const loadPending = () => {
+    setListLoading(true)
+    setListError(null)
+    classificationsApi
+      .listPending({ companyId: companyId || undefined, limit: 100 })
+      .then((res) => {
+        setItems(res.items)
+        setTotalCount(res.totalCount)
+      })
+      .catch((err) => setListError(err instanceof Error ? err.message : 'Erro ao carregar a fila'))
+      .finally(() => setListLoading(false))
+  }
+
+  useEffect(() => {
+    listCompanies()
+      .then(setCompanies)
+      .catch(() => setCompanies([]))
+  }, [])
+
+  useEffect(loadPending, [companyId])
+
+  const selectItem = (classificationId: string) => {
+    setSelectedId(classificationId)
+    setDetail(null)
+    setStandardAccounts([])
+    setOverrideAccountId('')
+    setReason('')
+    setActionError(null)
+    setDetailLoading(true)
+
+    classificationsApi
+      .getById(classificationId)
+      .then((d) => {
+        setDetail(d)
+        return standardAccountsApi.list(d.chartOfAccountsId)
+      })
+      .then((accounts) => setStandardAccounts(accounts))
+      .catch((err) => setActionError(err instanceof Error ? err.message : 'Erro ao carregar o detalhe'))
+      .finally(() => setDetailLoading(false))
+  }
+
+  const afterAction = () => {
+    setSelectedId(null)
+    setDetail(null)
+    loadPending()
+  }
+
+  const handleApprove = async () => {
+    if (!detail) return
+    setActionLoading(true)
+    setActionError(null)
+    try {
+      await classificationsApi.approve(detail.classificationId, { notes: reason || null })
+      afterAction()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Erro ao aprovar')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleReject = async () => {
+    if (!detail) return
+    setActionLoading(true)
+    setActionError(null)
+    try {
+      await classificationsApi.reject(detail.classificationId, { reason: reason || null })
+      afterAction()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Erro ao rejeitar')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleOverride = async () => {
+    if (!detail || !overrideAccountId) return
+    setActionLoading(true)
+    setActionError(null)
+    try {
+      await classificationsApi.override(detail.classificationId, { newStandardAccountId: overrideAccountId, reason: reason || null })
+      afterAction()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Erro ao aplicar o override')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-semibold">Fila de Revisão</h1>
-      <p className="mt-2 text-neutral">Placeholder da Fase 1 — fluxo real chega na Fase 3.</p>
+      <p className="mt-2 text-neutral">
+        Contas classificadas com baixa confiança, ou sem nenhuma correspondência. Selecione um item para aprovar, corrigir ou rejeitar.
+      </p>
+
+      <div className="mt-4 max-w-xs">
+        <select
+          value={companyId}
+          onChange={(e) => setCompanyId(e.target.value)}
+          className="w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+        >
+          <option value="">Todas as empresas</option>
+          {companies.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {listError && <p className="mt-3 text-sm text-error">{listError}</p>}
+
+      <div className="mt-6 flex gap-6">
+        <div className="flex-1">
+          <p className="mb-2 text-sm text-neutral">{totalCount} pendente(s)</p>
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-neutral/20 bg-surface-muted text-left">
+                <th className="p-2">Conta Original</th>
+                <th className="p-2">Sugerida</th>
+                <th className="p-2">Confiança</th>
+                <th className="p-2">Método</th>
+              </tr>
+            </thead>
+            <tbody>
+              {listLoading && (
+                <tr>
+                  <td className="p-2 text-neutral" colSpan={4}>
+                    Carregando...
+                  </td>
+                </tr>
+              )}
+              {!listLoading && items.length === 0 && (
+                <tr>
+                  <td className="p-2 text-neutral" colSpan={4}>
+                    Nenhum item pendente de revisão.
+                  </td>
+                </tr>
+              )}
+              {!listLoading &&
+                items.map((item) => (
+                  <tr
+                    key={item.classificationId}
+                    onClick={() => selectItem(item.classificationId)}
+                    className={[
+                      'cursor-pointer border-b border-neutral/10',
+                      item.classificationId === selectedId ? 'bg-primary/10' : 'hover:bg-neutral/10',
+                    ].join(' ')}
+                  >
+                    <td className="p-2">{item.sourceAccountName}</td>
+                    <td className="p-2 text-neutral">{item.suggestedStandardAccountName ?? '—'}</td>
+                    <td className="p-2">{(item.confidenceScore * 100).toFixed(0)}%</td>
+                    <td className="p-2 text-neutral">{item.classificationMethod}</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="w-96 shrink-0 rounded-md border border-neutral/20 p-4">
+          {!selectedId && <p className="text-sm text-neutral">Selecione um item na lista para ver o detalhe.</p>}
+          {selectedId && detailLoading && <p className="text-sm text-neutral">Carregando detalhe...</p>}
+          {selectedId && !detailLoading && detail && (
+            <div>
+              <h2 className="text-lg font-semibold">{detail.sourceAccount.originalName}</h2>
+              <p className="mt-1 text-xs text-neutral">
+                Tipo: {detail.sourceAccount.inferredType ?? '—'} / Subtipo: {detail.sourceAccount.inferredSubtype ?? '—'}
+              </p>
+
+              <div className="mt-4 rounded-md bg-surface-muted p-3">
+                <p className="text-xs font-semibold uppercase text-neutral">Sugestão</p>
+                <p className="mt-1 text-sm font-medium">{detail.suggestedStandardAccount?.name ?? 'Nenhuma'}</p>
+                <p className="text-xs text-neutral">
+                  {detail.classificationMethod} · {(detail.confidenceScore * 100).toFixed(0)}% de confiança
+                </p>
+                {detail.evidence && <p className="mt-2 text-xs text-neutral">{detail.evidence}</p>}
+              </div>
+
+              <label className="mt-4 block text-xs font-semibold uppercase text-neutral">Corrigir para</label>
+              <select
+                value={overrideAccountId}
+                onChange={(e) => setOverrideAccountId(e.target.value)}
+                className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+              >
+                <option value="">Selecione uma conta padrão...</option>
+                {standardAccounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+
+              <label className="mt-3 block text-xs font-semibold uppercase text-neutral">Observação (opcional)</label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                rows={2}
+                className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+              />
+
+              {actionError && <p className="mt-3 text-sm text-error">{actionError}</p>}
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button onClick={handleApprove} loading={actionLoading} disabled={!detail.suggestedStandardAccount}>
+                  Aprovar
+                </Button>
+                <Button variant="secondary" onClick={handleOverride} loading={actionLoading} disabled={!overrideAccountId}>
+                  Aplicar Correção
+                </Button>
+                <Button variant="danger" onClick={handleReject} loading={actionLoading}>
+                  Rejeitar
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

@@ -101,6 +101,7 @@ public class ClassificationsController : ControllerBase
 
         return Ok(ApiResponse<ClassificationDetailResponse>.Ok(new ClassificationDetailResponse(
             classification.Id,
+            classification.ChartOfAccountsId,
             new SourceAccountSummaryDto(
                 sourceAccount.Id, sourceAccount.OriginalName, sourceAccount.NormalizedName,
                 sourceAccount.HierarchyLevel, sourceAccount.InferredType, sourceAccount.InferredSubtype),
@@ -140,6 +141,31 @@ public class ClassificationsController : ControllerBase
 
         return Ok(ApiResponse<ApproveClassificationResponse>.Ok(
             new ApproveClassificationResponse(classification.Id, classification.ReviewStatus.ToString(), classification.ReviewedAt!.Value)));
+    }
+
+    [HttpPost("{id:guid}/reject")]
+    public async Task<ActionResult<ApiResponse<RejectClassificationResponse>>> Reject(
+        Guid id, [FromBody] RejectClassificationRequest? request, CancellationToken cancellationToken)
+    {
+        var classification = await _db.AccountClassifications.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+        if (classification is null)
+        {
+            return NotFound(ApiResponse<object>.Fail("NOT_FOUND", "Classificação não encontrada."));
+        }
+
+        // Rejeitar limpa a sugestão - ela estava errada e ninguém escolheu
+        // uma substituta agora (para isso existe o override).
+        classification.StandardAccountId = null;
+        classification.ConfidenceScore = 0m;
+        classification.ReviewStatus = ClassificationReviewStatus.Rejected;
+        classification.ReviewedAt = DateTime.UtcNow;
+        classification.ReviewNotes = request?.Reason;
+        classification.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return Ok(ApiResponse<RejectClassificationResponse>.Ok(
+            new RejectClassificationResponse(classification.Id, classification.ReviewStatus.ToString(), classification.ReviewedAt!.Value)));
     }
 
     [HttpPost("{id:guid}/override")]

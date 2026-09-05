@@ -23,6 +23,7 @@ public sealed record StandardAccountSummaryDto(Guid Id, string Code, string Name
 
 public sealed record ClassificationDetailResponse(
     Guid ClassificationId,
+    Guid ChartOfAccountsId,
     SourceAccountSummaryDto SourceAccount,
     StandardAccountSummaryDto? SuggestedStandardAccount,
     decimal ConfidenceScore,
@@ -34,6 +35,10 @@ public sealed record ClassificationDetailResponse(
 public sealed record ApproveClassificationRequest(string? Notes);
 
 public sealed record ApproveClassificationResponse(Guid ClassificationId, string ReviewStatus, DateTime ReviewedAt);
+
+public sealed record RejectClassificationRequest(string? Reason);
+
+public sealed record RejectClassificationResponse(Guid ClassificationId, string ReviewStatus, DateTime ReviewedAt);
 
 public sealed record OverrideClassificationRequest(Guid NewStandardAccountId, string? Reason);
 
