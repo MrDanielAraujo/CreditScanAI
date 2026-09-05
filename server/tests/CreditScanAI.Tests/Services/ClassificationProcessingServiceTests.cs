@@ -1,5 +1,7 @@
 using CreditScanAI.Api.Services;
 using CreditScanAI.Classification;
+using CreditScanAI.Classification.Ai;
+using CreditScanAI.Classification.Models;
 using CreditScanAI.Classification.Rules;
 using CreditScanAI.Domain.Entities;
 using CreditScanAI.Domain.Enums;
@@ -123,9 +125,48 @@ public class ClassificationProcessingServiceTests
         return (chart, salariosAccount);
     }
 
-    private static ClassificationProcessingService BuildService(AppDbContext db) => new(
+    /// <summary>
+    /// Always agrees with whatever candidate is passed in, so tests that
+    /// don't care about the AI layer's answer (only that the pipeline
+    /// completes and persists something) can stay simple.
+    /// </summary>
+    private sealed class StubAiClassificationService : IAiClassificationService
+    {
+        private readonly Guid _standardAccountId;
+        private readonly float _confidence;
+        private readonly string _reasoning;
+
+        public StubAiClassificationService(Guid standardAccountId, float confidence, string reasoning = "IA concorda (stub de teste)")
+        {
+            _standardAccountId = standardAccountId;
+            _confidence = confidence;
+            _reasoning = reasoning;
+        }
+
+        public Task<AiClassificationResult> ClassifyAsync(ClassificationContext context, IReadOnlyList<StandardAccountCandidate> candidates, CancellationToken cancellationToken)
+            => Task.FromResult(new AiClassificationResult(_standardAccountId, _confidence, _reasoning));
+    }
+
+    /// <summary>Simulates the Ollama service being unreachable.</summary>
+    private sealed class UnreachableAiClassificationService : IAiClassificationService
+    {
+        public Task<AiClassificationResult> ClassifyAsync(ClassificationContext context, IReadOnlyList<StandardAccountCandidate> candidates, CancellationToken cancellationToken)
+            => throw new HttpRequestException("Ollama indisponível (stub de teste)");
+    }
+
+    /// <summary>Fails the test loudly if the AI layer is invoked when it shouldn't be.</summary>
+    private sealed class NeverCalledAiClassificationService : IAiClassificationService
+    {
+        public Task<AiClassificationResult> ClassifyAsync(ClassificationContext context, IReadOnlyList<StandardAccountCandidate> candidates, CancellationToken cancellationToken)
+            => throw new InvalidOperationException("A IA não deveria ter sido chamada neste cenário.");
+    }
+
+    private static ClassificationProcessingService BuildService(AppDbContext db, IAiClassificationService aiService) => new(
         db,
-        new RuleOrchestrator([new ExactMatchRule(new AccountNameNormalizer()), new PatternMatchRule(new AccountNameNormalizer())]),
+        new AccountClassifier(
+            new RuleOrchestrator([new ExactMatchRule(new AccountNameNormalizer()), new PatternMatchRule(new AccountNameNormalizer())]),
+            aiService,
+            NullLogger<AccountClassifier>.Instance),
         new AccountNameNormalizer(),
         NullLogger<ClassificationProcessingService>.Instance);
 
@@ -135,7 +176,7 @@ public class ClassificationProcessingServiceTests
         var (db, _, documentId) = await ExtractRealBalanceSheetAsync();
         await using var _ = db;
 
-        var service = BuildService(db);
+        var service = BuildService(db, new NeverCalledAiClassificationService());
         await service.ProcessAsync(documentId, CancellationToken.None);
 
         var document = await db.Documents.FirstAsync(d => d.Id == documentId);
@@ -147,11 +188,15 @@ public class ClassificationProcessingServiceTests
     [Fact]
     public async Task ProcessAsync_WithDefaultChart_ClassifiesRealCaixaEBancosLine()
     {
+        // PATTERN_MATCH sozinho nunca ultrapassa 0.85 de confiança (ver
+        // AccountClassifier.RuleHighConfidenceThreshold = 0.90), então a IA
+        // sempre é consultada como segunda opinião aqui - o teste usa um
+        // stub que concorda com a sugestão da regra.
         var (db, tenantId, documentId) = await ExtractRealBalanceSheetAsync();
         await using var _ = db;
         var (_, _, chart, caixaAccount) = await SeedChartAsync(db, tenantId);
 
-        var service = BuildService(db);
+        var service = BuildService(db, new StubAiClassificationService(caixaAccount.Id, 0.95f));
         await service.ProcessAsync(documentId, CancellationToken.None);
 
         var document = await db.Documents.FirstAsync(d => d.Id == documentId);
@@ -162,9 +207,76 @@ public class ClassificationProcessingServiceTests
         var classification = await db.AccountClassifications.FirstAsync(c => c.SourceAccountId == caixaSourceAccount.Id);
 
         classification.StandardAccountId.Should().Be(caixaAccount.Id);
-        classification.ClassificationMethod.Should().Be("PATTERN_MATCH");
-        classification.ConfidenceScore.Should().BeGreaterThan(0.7m);
+        classification.ClassificationMethod.Should().Be("AI");
+        classification.ConfidenceScore.Should().Be(0.95m);
         classification.ReviewStatus.Should().Be(ClassificationReviewStatus.Pending);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_ExactMatch_SkipsAiEntirely()
+    {
+        var (db, tenantId, documentId) = await ExtractRealBalanceSheetAsync();
+        await using var _ = db;
+        var (_, _, _, caixaAccount) = await SeedChartAsync(db, tenantId);
+        // Renomeia a conta padrão para bater exatamente com o nome extraído,
+        // forçando EXACT_MATCH (confiança 0.99) - acima do limiar de 0.90 que
+        // dispensa a IA.
+        caixaAccount.Name = "Caixa e bancos";
+        await db.SaveChangesAsync();
+
+        var service = BuildService(db, new NeverCalledAiClassificationService());
+        await service.ProcessAsync(documentId, CancellationToken.None);
+
+        var caixaSourceAccount = await db.SourceAccounts.FirstAsync(a => a.OriginalName == "Caixa e bancos");
+        var classification = await db.AccountClassifications.FirstAsync(c => c.SourceAccountId == caixaSourceAccount.Id);
+
+        classification.StandardAccountId.Should().Be(caixaAccount.Id);
+        classification.ClassificationMethod.Should().Be("EXACT_MATCH");
+        classification.ReviewStatus.Should().Be(ClassificationReviewStatus.Pending);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WhenAiIsUnavailable_FallsBackToRuleSuggestionAndFlagsForReview()
+    {
+        var (db, tenantId, documentId) = await ExtractRealBalanceSheetAsync();
+        await using var _ = db;
+        var (_, _, _, caixaAccount) = await SeedChartAsync(db, tenantId);
+
+        var service = BuildService(db, new UnreachableAiClassificationService());
+        await service.ProcessAsync(documentId, CancellationToken.None);
+
+        var document = await db.Documents.FirstAsync(d => d.Id == documentId);
+        document.ClassificationStatus.Should().Be(ClassificationStatus.Completed);
+
+        var caixaSourceAccount = await db.SourceAccounts.FirstAsync(a => a.OriginalName == "Caixa e bancos");
+        var classification = await db.AccountClassifications.FirstAsync(c => c.SourceAccountId == caixaSourceAccount.Id);
+
+        // A regra (PATTERN_MATCH) ainda encontrou "Caixa e Equivalentes de
+        // Caixa"; como a IA está indisponível, mantemos essa sugestão mas
+        // marcamos para revisão em vez de confiar cegamente nela.
+        classification.StandardAccountId.Should().Be(caixaAccount.Id);
+        classification.ClassificationMethod.Should().Be("AI_UNAVAILABLE");
+        classification.ReviewStatus.Should().Be(ClassificationReviewStatus.NeedsReview);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WhenAiConfidenceIsBelowItsOwnThreshold_IsFlaggedForReview()
+    {
+        // 0.72 fica acima do limiar de regra (0.70) mas abaixo do limiar
+        // específico de IA (0.75) - prova que usamos o segundo, não o primeiro.
+        var (db, tenantId, documentId) = await ExtractRealBalanceSheetAsync();
+        await using var _ = db;
+        var (_, _, _, caixaAccount) = await SeedChartAsync(db, tenantId);
+
+        var service = BuildService(db, new StubAiClassificationService(caixaAccount.Id, 0.72f));
+        await service.ProcessAsync(documentId, CancellationToken.None);
+
+        var caixaSourceAccount = await db.SourceAccounts.FirstAsync(a => a.OriginalName == "Caixa e bancos");
+        var classification = await db.AccountClassifications.FirstAsync(c => c.SourceAccountId == caixaSourceAccount.Id);
+
+        classification.ClassificationMethod.Should().Be("AI");
+        classification.ConfidenceScore.Should().Be(0.72m);
+        classification.ReviewStatus.Should().Be(ClassificationReviewStatus.NeedsReview);
     }
 
     [Fact]
@@ -182,7 +294,13 @@ public class ClassificationProcessingServiceTests
         await using var _ = db;
         var (chart, salariosAccount) = await SeedPassivoChartWithSalariosAsync(db, tenantId);
 
-        var service = BuildService(db);
+        // A asserção que realmente prende o bug original é a do
+        // NormalizedName logo abaixo - ela não depende da IA. O stub aqui só
+        // permite que o pipeline completo (regra de baixa confiança -> IA)
+        // seja exercitado de ponta a ponta; a proteção específica da regra
+        // (PatternMatchRule escolhendo o candidato certo) tem um teste
+        // dedicado em RuleOrchestratorTests.
+        var service = BuildService(db, new StubAiClassificationService(salariosAccount.Id, 0.9f));
         await service.ProcessAsync(documentId, CancellationToken.None);
 
         var salariosSourceAccount = await db.SourceAccounts.FirstAsync(a => a.OriginalName == "Salários a pagar");
@@ -204,7 +322,9 @@ public class ClassificationProcessingServiceTests
         db.ChartOfAccounts.Add(chart);
         await db.SaveChangesAsync();
 
-        var service = BuildService(db);
+        // Sem candidatos, a IA nem deveria ser chamada - ver
+        // AccountClassifier: candidates.Count == 0 retorna direto.
+        var service = BuildService(db, new NeverCalledAiClassificationService());
         await service.ProcessAsync(documentId, CancellationToken.None);
 
         var caixaSourceAccount = await db.SourceAccounts.FirstAsync(a => a.OriginalName == "Caixa e bancos");
@@ -220,9 +340,9 @@ public class ClassificationProcessingServiceTests
     {
         var (db, tenantId, documentId) = await ExtractRealBalanceSheetAsync();
         await using var _ = db;
-        await SeedChartAsync(db, tenantId);
+        var (_, _, _, caixaAccount) = await SeedChartAsync(db, tenantId);
 
-        var service = BuildService(db);
+        var service = BuildService(db, new StubAiClassificationService(caixaAccount.Id, 0.9f));
         await service.ProcessAsync(documentId, CancellationToken.None);
 
         // "Ativo" and "Circulante:" are structural headers with no values of

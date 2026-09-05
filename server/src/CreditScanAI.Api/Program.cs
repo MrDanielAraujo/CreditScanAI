@@ -40,7 +40,7 @@ builder.Services.AddScoped<DocumentProcessingService>();
 builder.Services.AddHostedService<DocumentProcessingBackgroundService>();
 builder.Services.AddScoped<ICurrentTenantProvider, CurrentTenantProvider>();
 
-builder.Services.AddClassificationEngine();
+builder.Services.AddClassificationEngine(builder.Configuration);
 builder.Services.AddSingleton<IClassificationProcessingQueue, ClassificationProcessingQueue>();
 builder.Services.AddScoped<ClassificationProcessingService>();
 builder.Services.AddHostedService<ClassificationProcessingBackgroundService>();

@@ -72,6 +72,31 @@ public class RuleOrchestratorTests
     }
 
     [Fact]
+    public void Classify_SalariosAPagar_PrefersSalariosOverImpostos()
+    {
+        // Regressão da Fase 3 Parte 2: "Salários a pagar" normalizado sem
+        // remover acentos ("SALÁRIOS...") empatava com "Impostos a Pagar"
+        // por sobreposição de tokens, em vez de escolher o candidato
+        // correto. Este teste isola a regra em si (sem passar pela IA),
+        // usando o normalizador real - se o bug reaparecer aqui, é porque a
+        // normalização voltou a divergir.
+        var impostosId = Guid.NewGuid();
+        var salariosId = Guid.NewGuid();
+        List<StandardAccountCandidate> candidates =
+        [
+            new(impostosId, "IMPOSTOS", "Impostos a Pagar", null),
+            new(salariosId, "SALENC", "Salários e Encargos a Pagar", null),
+            new(_fornecedoresId, "FORN", "Fornecedores", null),
+        ];
+
+        var context = new ClassificationContext("Salários a pagar", _normalizer.Normalize("Salários a pagar"), "PASSIVO", "CIRCULANTE");
+        var result = _orchestrator.Classify(context, candidates);
+
+        result.StandardAccountId.Should().Be(salariosId);
+        result.Method.Should().Be("PATTERN_MATCH");
+    }
+
+    [Fact]
     public void Classify_CompletelyUnrelatedName_ReturnsUnknown()
     {
         var result = _orchestrator.Classify(ContextFor("Xyzabc Totally Unrelated"), RealSeedCandidates());

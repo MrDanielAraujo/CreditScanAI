@@ -19,21 +19,25 @@ namespace CreditScanAI.Api.Services;
 /// </summary>
 public class ClassificationProcessingService
 {
-    private const float ReviewConfidenceThreshold = 0.7f;
+    // Classificações por regra (EXACT_MATCH/PATTERN_MATCH) usam este limiar;
+    // classificações por IA usam um limiar próprio, um pouco mais rígido -
+    // ver AiReviewConfidenceThreshold.
+    private const float RuleReviewConfidenceThreshold = 0.7f;
+    private const float AiReviewConfidenceThreshold = 0.75f;
 
     private readonly AppDbContext _db;
-    private readonly IRuleOrchestrator _orchestrator;
+    private readonly IAccountClassifier _classifier;
     private readonly IAccountNameNormalizer _normalizer;
     private readonly ILogger<ClassificationProcessingService> _logger;
 
     public ClassificationProcessingService(
         AppDbContext db,
-        IRuleOrchestrator orchestrator,
+        IAccountClassifier classifier,
         IAccountNameNormalizer normalizer,
         ILogger<ClassificationProcessingService> logger)
     {
         _db = db;
-        _orchestrator = orchestrator;
+        _classifier = classifier;
         _normalizer = normalizer;
         _logger = logger;
     }
@@ -96,10 +100,8 @@ public class ClassificationProcessingService
                     sourceAccount.InferredType,
                     sourceAccount.InferredSubtype);
 
-                var result = _orchestrator.Classify(context, candidates);
-                var reviewStatus = result.StandardAccountId is null || result.Confidence < ReviewConfidenceThreshold
-                    ? ClassificationReviewStatus.NeedsReview
-                    : ClassificationReviewStatus.Pending;
+                var result = await _classifier.ClassifyAsync(context, candidates, cancellationToken);
+                var reviewStatus = DetermineReviewStatus(result);
 
                 var existing = await _db.AccountClassifications
                     .FirstOrDefaultAsync(c => c.SourceAccountId == sourceAccount.Id, cancellationToken);
@@ -145,6 +147,17 @@ public class ClassificationProcessingService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static ClassificationReviewStatus DetermineReviewStatus(ClassificationResult result)
+    {
+        if (result.StandardAccountId is null || result.Method == "AI_UNAVAILABLE")
+        {
+            return ClassificationReviewStatus.NeedsReview;
+        }
+
+        var threshold = result.Method == "AI" ? AiReviewConfidenceThreshold : RuleReviewConfidenceThreshold;
+        return result.Confidence < threshold ? ClassificationReviewStatus.NeedsReview : ClassificationReviewStatus.Pending;
     }
 
     private static List<StandardAccountCandidate> FilterCandidates(
