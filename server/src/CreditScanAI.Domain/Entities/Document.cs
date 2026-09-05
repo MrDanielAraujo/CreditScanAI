@@ -28,6 +28,11 @@ public class Document
     /// </summary>
     public Guid? ChartOfAccountsId { get; set; }
 
+    public ClassificationStatus ClassificationStatus { get; set; } = ClassificationStatus.NotStarted;
+    public DateTime? ClassificationStartedAt { get; set; }
+    public DateTime? ClassificationCompletedAt { get; set; }
+    public string? ClassificationError { get; set; }
+
     public Tenant? Tenant { get; set; }
     public Company? Company { get; set; }
     public ChartOfAccounts? ChartOfAccounts { get; set; }

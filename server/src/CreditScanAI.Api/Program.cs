@@ -2,6 +2,7 @@ using System.Text;
 using System.Threading.RateLimiting;
 using CreditScanAI.Api.Middleware;
 using CreditScanAI.Api.Services;
+using CreditScanAI.Classification;
 using CreditScanAI.Infrastructure.Persistence;
 using CreditScanAI.Infrastructure.Persistence.Seed;
 using CreditScanAI.PdfPipeline;
@@ -38,6 +39,11 @@ builder.Services.AddSingleton<IDocumentProcessingQueue, DocumentProcessingQueue>
 builder.Services.AddScoped<DocumentProcessingService>();
 builder.Services.AddHostedService<DocumentProcessingBackgroundService>();
 builder.Services.AddScoped<ICurrentTenantProvider, CurrentTenantProvider>();
+
+builder.Services.AddClassificationEngine();
+builder.Services.AddSingleton<IClassificationProcessingQueue, ClassificationProcessingQueue>();
+builder.Services.AddScoped<ClassificationProcessingService>();
+builder.Services.AddHostedService<ClassificationProcessingBackgroundService>();
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("Jwt:Key não configurada.");

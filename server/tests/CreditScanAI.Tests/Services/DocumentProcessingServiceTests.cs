@@ -65,6 +65,8 @@ public class DocumentProcessingServiceTests
             new FakeDocumentStorage(pdfBytes),
             pipeline,
             new NumericValueNormalizer(),
+            new AccountNameNormalizer(),
+            new ClassificationProcessingQueue(),
             NullLogger<DocumentProcessingService>.Instance);
 
         // Act

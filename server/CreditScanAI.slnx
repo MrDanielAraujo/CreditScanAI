@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/CreditScanAI.Api/CreditScanAI.Api.csproj" />
+    <Project Path="src/CreditScanAI.Classification/CreditScanAI.Classification.csproj" />
     <Project Path="src/CreditScanAI.Domain/CreditScanAI.Domain.csproj" />
     <Project Path="src/CreditScanAI.Infrastructure/CreditScanAI.Infrastructure.csproj" />
     <Project Path="src/CreditScanAI.PdfPipeline/CreditScanAI.PdfPipeline.csproj" />

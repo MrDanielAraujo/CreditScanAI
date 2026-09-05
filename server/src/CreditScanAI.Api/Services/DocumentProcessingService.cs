@@ -22,6 +22,8 @@ public class DocumentProcessingService
     private readonly IDocumentStorage _storage;
     private readonly IPdfExtractionPipeline _pipeline;
     private readonly INumericValueNormalizer _valueNormalizer;
+    private readonly IAccountNameNormalizer _nameNormalizer;
+    private readonly IClassificationProcessingQueue _classificationQueue;
     private readonly ILogger<DocumentProcessingService> _logger;
 
     public DocumentProcessingService(
@@ -29,12 +31,16 @@ public class DocumentProcessingService
         IDocumentStorage storage,
         IPdfExtractionPipeline pipeline,
         INumericValueNormalizer valueNormalizer,
+        IAccountNameNormalizer nameNormalizer,
+        IClassificationProcessingQueue classificationQueue,
         ILogger<DocumentProcessingService> logger)
     {
         _db = db;
         _storage = storage;
         _pipeline = pipeline;
         _valueNormalizer = valueNormalizer;
+        _nameNormalizer = nameNormalizer;
+        _classificationQueue = classificationQueue;
         _logger = logger;
     }
 
@@ -72,6 +78,14 @@ public class DocumentProcessingService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+
+        // Chain straight into classification (Fase 3) - it parks itself with
+        // AwaitingDefaultChartOfAccounts if there's no default plan yet, so
+        // nothing is lost either way.
+        if (document.ExtractionStatus == ExtractionStatus.Completed)
+        {
+            _classificationQueue.Enqueue(documentId);
+        }
     }
 
     private async Task<Dictionary<int, Guid>> ResolvePeriodsAsync(
@@ -135,7 +149,11 @@ public class DocumentProcessingService
                 TenantId = document.TenantId,
                 DocumentId = document.Id,
                 OriginalName = node.OriginalName,
-                NormalizedName = node.OriginalName.Trim().ToUpperInvariant(),
+                // Must match IAccountNameNormalizer exactly - it's also what
+                // the classification engine (Fase 3) normalizes StandardAccount
+                // names with, and ExactMatchRule/PatternMatchRule compare the
+                // two directly.
+                NormalizedName = _nameNormalizer.Normalize(node.OriginalName),
                 HierarchyLevel = node.Level,
                 ParentSourceAccountId = parentId,
                 InferredType = node.InferredType,

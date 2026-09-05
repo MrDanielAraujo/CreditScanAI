@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CreditScanAI.Infrastructure\CreditScanAI.Infrastructure.csproj" />
     <ProjectReference Include="..\CreditScanAI.PdfPipeline\CreditScanAI.PdfPipeline.csproj" />
+    <ProjectReference Include="..\CreditScanAI.Classification\CreditScanAI.Classification.csproj" />
   </ItemGroup>
 
 </Project>

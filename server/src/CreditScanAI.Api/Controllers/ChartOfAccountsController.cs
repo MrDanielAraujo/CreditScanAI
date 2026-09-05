@@ -2,6 +2,7 @@ using CreditScanAI.Api.Contracts;
 using CreditScanAI.Api.Contracts.Registrations;
 using CreditScanAI.Api.Services;
 using CreditScanAI.Domain.Entities;
+using CreditScanAI.Domain.Enums;
 using CreditScanAI.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,11 +17,13 @@ public class ChartOfAccountsController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly ICurrentTenantProvider _tenantProvider;
+    private readonly IClassificationProcessingQueue _classificationQueue;
 
-    public ChartOfAccountsController(AppDbContext db, ICurrentTenantProvider tenantProvider)
+    public ChartOfAccountsController(AppDbContext db, ICurrentTenantProvider tenantProvider, IClassificationProcessingQueue classificationQueue)
     {
         _db = db;
         _tenantProvider = tenantProvider;
+        _classificationQueue = classificationQueue;
     }
 
     private static ChartOfAccountsDto ToDto(ChartOfAccounts c) => new(c.Id, c.Name, c.Description, c.IsDefault);
@@ -86,6 +89,11 @@ public class ChartOfAccountsController : ControllerBase
         _db.ChartOfAccounts.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
 
+        if (isFirstChart)
+        {
+            await ReenqueueAwaitingDocumentsAsync(tenantId, cancellationToken);
+        }
+
         return CreatedAtAction(nameof(Get), new { id = entity.Id }, ApiResponse<ChartOfAccountsDto>.Ok(ToDto(entity)));
     }
 
@@ -144,8 +152,27 @@ public class ChartOfAccountsController : ControllerBase
         entity.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(cancellationToken);
+        await ReenqueueAwaitingDocumentsAsync(entity.TenantId, cancellationToken);
 
         return Ok(ApiResponse<ChartOfAccountsDto>.Ok(ToDto(entity)));
+    }
+
+    /// <summary>
+    /// Documents that finished extraction while there was no default chart
+    /// got parked (AwaitingDefaultChartOfAccounts) instead of lost - resume
+    /// them now that one exists.
+    /// </summary>
+    private async Task ReenqueueAwaitingDocumentsAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        var awaitingDocumentIds = await _db.Documents
+            .Where(d => d.TenantId == tenantId && d.ClassificationStatus == ClassificationStatus.AwaitingDefaultChartOfAccounts)
+            .Select(d => d.Id)
+            .ToListAsync(cancellationToken);
+
+        foreach (var documentId in awaitingDocumentIds)
+        {
+            _classificationQueue.Enqueue(documentId);
+        }
     }
 
     [HttpDelete("{id:guid}")]

@@ -1,4 +1,5 @@
 using CreditScanAI.Domain.Entities;
+using CreditScanAI.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -29,6 +30,11 @@ public class DocumentConfiguration : IEntityTypeConfiguration<Document>
         builder.Property(d => d.CreatedAt).HasColumnName("created_at");
         builder.Property(d => d.UpdatedAt).HasColumnName("updated_at");
         builder.Property(d => d.ChartOfAccountsId).HasColumnName("chart_of_accounts_id");
+        builder.Property(d => d.ClassificationStatus).HasColumnName("classification_status").HasConversion<string>().HasMaxLength(50)
+            .HasDefaultValue(ClassificationStatus.NotStarted);
+        builder.Property(d => d.ClassificationStartedAt).HasColumnName("classification_started_at");
+        builder.Property(d => d.ClassificationCompletedAt).HasColumnName("classification_completed_at");
+        builder.Property(d => d.ClassificationError).HasColumnName("classification_error");
 
         builder.HasOne(d => d.Tenant)
             .WithMany()
@@ -48,5 +54,6 @@ public class DocumentConfiguration : IEntityTypeConfiguration<Document>
         builder.HasIndex(d => new { d.TenantId, d.CompanyId }).HasDatabaseName("idx_documents_tenant_company");
         builder.HasIndex(d => d.ExtractionStatus).HasDatabaseName("idx_documents_status");
         builder.HasIndex(d => d.DocumentType).HasDatabaseName("idx_documents_type");
+        builder.HasIndex(d => d.ClassificationStatus).HasDatabaseName("idx_documents_classification_status");
     }
 }
