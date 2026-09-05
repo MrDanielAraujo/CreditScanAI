@@ -20,6 +20,7 @@ public class AccountClassification
     public ClassificationReviewStatus ReviewStatus { get; set; } = ClassificationReviewStatus.Pending;
     public Guid? ReviewedBy { get; set; }
     public DateTime? ReviewedAt { get; set; }
+    public string? ReviewNotes { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

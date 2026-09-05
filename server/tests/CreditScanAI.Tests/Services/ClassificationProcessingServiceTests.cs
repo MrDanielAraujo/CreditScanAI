@@ -161,11 +161,19 @@ public class ClassificationProcessingServiceTests
             => throw new InvalidOperationException("A IA não deveria ter sido chamada neste cenário.");
     }
 
+    /// <summary>Nunca encontra decisão histórica - estes testes não cobrem a Camada 4 (ver ClassificationHistoryTests).</summary>
+    private sealed class NoHistoryProvider : IClassificationHistoryProvider
+    {
+        public Task<HistoricalClassification?> FindPreviousDecisionAsync(Guid companyId, Guid excludeDocumentId, string normalizedSourceAccountName, CancellationToken cancellationToken)
+            => Task.FromResult<HistoricalClassification?>(null);
+    }
+
     private static ClassificationProcessingService BuildService(AppDbContext db, IAiClassificationService aiService) => new(
         db,
         new AccountClassifier(
             new RuleOrchestrator([new ExactMatchRule(new AccountNameNormalizer()), new PatternMatchRule(new AccountNameNormalizer())]),
             aiService,
+            new NoHistoryProvider(),
             NullLogger<AccountClassifier>.Instance),
         new AccountNameNormalizer(),
         NullLogger<ClassificationProcessingService>.Instance);

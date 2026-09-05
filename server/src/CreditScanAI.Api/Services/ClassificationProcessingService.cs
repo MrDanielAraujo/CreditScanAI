@@ -98,7 +98,9 @@ public class ClassificationProcessingService
                     sourceAccount.OriginalName,
                     sourceAccount.NormalizedName ?? _normalizer.Normalize(sourceAccount.OriginalName),
                     sourceAccount.InferredType,
-                    sourceAccount.InferredSubtype);
+                    sourceAccount.InferredSubtype,
+                    document.CompanyId,
+                    document.Id);
 
                 var result = await _classifier.ClassifyAsync(context, candidates, cancellationToken);
                 var reviewStatus = DetermineReviewStatus(result);

@@ -7,10 +7,11 @@ namespace CreditScanAI.Classification;
 public interface IAccountClassifier
 {
     /// <summary>
-    /// Classifica uma conta de origem combinando regras determinísticas com
-    /// a IA local como camada de reforço. Nunca lança por falha da IA - se
-    /// o Ollama estiver indisponível, cai de volta na sugestão da regra (se
-    /// houver) com o método "AI_UNAVAILABLE".
+    /// Classifica uma conta de origem combinando, em ordem: histórico de
+    /// decisões humanas da mesma empresa, regras determinísticas, e IA local
+    /// como camada de reforço. Nunca lança por falha da IA - se o Ollama
+    /// estiver indisponível, cai de volta na sugestão da regra (se houver)
+    /// com o método "AI_UNAVAILABLE".
     /// </summary>
     Task<ClassificationResult> ClassifyAsync(
         ClassificationContext context,
@@ -27,12 +28,18 @@ public sealed class AccountClassifier : IAccountClassifier
 
     private readonly IRuleOrchestrator _ruleOrchestrator;
     private readonly IAiClassificationService _aiService;
+    private readonly IClassificationHistoryProvider _historyProvider;
     private readonly ILogger<AccountClassifier> _logger;
 
-    public AccountClassifier(IRuleOrchestrator ruleOrchestrator, IAiClassificationService aiService, ILogger<AccountClassifier> logger)
+    public AccountClassifier(
+        IRuleOrchestrator ruleOrchestrator,
+        IAiClassificationService aiService,
+        IClassificationHistoryProvider historyProvider,
+        ILogger<AccountClassifier> logger)
     {
         _ruleOrchestrator = ruleOrchestrator;
         _aiService = aiService;
+        _historyProvider = historyProvider;
         _logger = logger;
     }
 
@@ -41,6 +48,22 @@ public sealed class AccountClassifier : IAccountClassifier
         IReadOnlyList<StandardAccountCandidate> candidates,
         CancellationToken cancellationToken)
     {
+        // Camada 4 (Histórico) roda primeiro: se esta empresa já teve uma
+        // classificação aprovada/corrigida por humano para este mesmo nome
+        // de conta antes, essa é a decisão mais confiável que existe -
+        // reaproveita direto, sem gastar tempo com regra/IA de novo.
+        var historical = await _historyProvider.FindPreviousDecisionAsync(
+            context.CompanyId, context.DocumentId, context.NormalizedName, cancellationToken);
+
+        if (historical is not null)
+        {
+            return new ClassificationResult(
+                historical.StandardAccountId,
+                0.98f,
+                "HISTORICAL_DECISION",
+                $"Empresa já classificou '{context.SourceAccountName}' como '{historical.StandardAccountName}' anteriormente ({historical.DecidedAt:d})");
+        }
+
         var ruleResult = _ruleOrchestrator.Classify(context, candidates);
 
         if (ruleResult.StandardAccountId is not null && ruleResult.Confidence >= RuleHighConfidenceThreshold)

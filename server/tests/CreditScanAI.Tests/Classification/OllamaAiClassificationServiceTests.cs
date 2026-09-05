@@ -52,7 +52,7 @@ public class OllamaAiClassificationServiceTests
         }
 
         var service = BuildService();
-        var context = new ClassificationContext("Salários a pagar", "SALARIOS A PAGAR", "PASSIVO", "CIRCULANTE");
+        var context = new ClassificationContext("Salários a pagar", "SALARIOS A PAGAR", "PASSIVO", "CIRCULANTE", Guid.NewGuid(), Guid.NewGuid());
         List<StandardAccountCandidate> candidates =
         [
             new(Guid.NewGuid(), "IMPOSTOS", "Impostos a Pagar", null),
@@ -77,7 +77,7 @@ public class OllamaAiClassificationServiceTests
         }
 
         var service = BuildService();
-        var context = new ClassificationContext("Fornecedores nacionais", "FORNECEDORES NACIONAIS", "PASSIVO", "CIRCULANTE");
+        var context = new ClassificationContext("Fornecedores nacionais", "FORNECEDORES NACIONAIS", "PASSIVO", "CIRCULANTE", Guid.NewGuid(), Guid.NewGuid());
         List<StandardAccountCandidate> candidates =
         [
             new(Guid.NewGuid(), "FORN", "Fornecedores", null),

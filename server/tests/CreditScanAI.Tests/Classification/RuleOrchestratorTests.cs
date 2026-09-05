@@ -28,8 +28,10 @@ public class RuleOrchestratorTests
         new(_aplicacoesId, "ATIVO_CIRC_APLIC_FIN", "Aplicações Financeiras", null),
     ];
 
+    // Regras não usam CompanyId/DocumentId (só a camada de Histórico usa) -
+    // valores arbitrários bastam aqui.
     private ClassificationContext ContextFor(string sourceName) =>
-        new(sourceName, _normalizer.Normalize(sourceName), "ATIVO", "CIRCULANTE");
+        new(sourceName, _normalizer.Normalize(sourceName), "ATIVO", "CIRCULANTE", Guid.NewGuid(), Guid.NewGuid());
 
     [Fact]
     public void Classify_NoCandidates_ReturnsUnknown()
@@ -89,7 +91,7 @@ public class RuleOrchestratorTests
             new(_fornecedoresId, "FORN", "Fornecedores", null),
         ];
 
-        var context = new ClassificationContext("Salários a pagar", _normalizer.Normalize("Salários a pagar"), "PASSIVO", "CIRCULANTE");
+        var context = ContextFor("Salários a pagar") with { InferredType = "PASSIVO", InferredSubtype = "CIRCULANTE" };
         var result = _orchestrator.Classify(context, candidates);
 
         result.StandardAccountId.Should().Be(salariosId);

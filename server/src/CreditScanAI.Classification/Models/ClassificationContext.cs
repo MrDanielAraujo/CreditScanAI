@@ -9,7 +9,9 @@ public sealed record ClassificationContext(
     string SourceAccountName,
     string NormalizedName,
     string? InferredType,
-    string? InferredSubtype);
+    string? InferredSubtype,
+    Guid CompanyId,
+    Guid DocumentId);
 
 /// <summary>One StandardAccount eligible to be the classification target.</summary>
 public sealed record StandardAccountCandidate(Guid Id, string Code, string Name, string? Description);

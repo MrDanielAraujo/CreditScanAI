@@ -24,6 +24,7 @@ public class AccountClassificationConfiguration : IEntityTypeConfiguration<Accou
             .HasDefaultValue(ClassificationReviewStatus.Pending);
         builder.Property(c => c.ReviewedBy).HasColumnName("reviewed_by");
         builder.Property(c => c.ReviewedAt).HasColumnName("reviewed_at");
+        builder.Property(c => c.ReviewNotes).HasColumnName("review_notes");
         builder.Property(c => c.CreatedAt).HasColumnName("created_at");
         builder.Property(c => c.UpdatedAt).HasColumnName("updated_at");
 
