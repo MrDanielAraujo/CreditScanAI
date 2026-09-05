@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using CreditScanAI.Domain.Enums;
 using CreditScanAI.PdfPipeline.Models;
 
 namespace CreditScanAI.PdfPipeline.Hierarchy;
@@ -8,9 +9,13 @@ public interface ITypeSubtypeDetector
     /// <summary>
     /// Assigns InferredType/InferredSubtype (with a confidence score) to every
     /// node in the tree, walking it top-down so a node with no keyword match
-    /// of its own inherits its parent's classification.
+    /// of its own inherits its parent's classification. documentType seeds
+    /// the root nodes: an income-statement document's own top-level sections
+    /// are DRE by definition, even when their header text uses a plural form
+    /// ("Despesas...") that the keyword list otherwise avoids matching (to
+    /// keep balance-sheet lines like "Despesas Antecipadas" safe).
     /// </summary>
-    void Classify(IReadOnlyList<HierarchicalAccount> roots);
+    void Classify(IReadOnlyList<HierarchicalAccount> roots, DocumentType documentType);
 }
 
 public sealed class TypeSubtypeDetector : ITypeSubtypeDetector
@@ -41,11 +46,40 @@ public sealed class TypeSubtypeDetector : ITypeSubtypeDetector
         ("PATRIMÔNIO LÍQUIDO", "PL")
     ];
 
-    public void Classify(IReadOnlyList<HierarchicalAccount> roots)
+    // Only tried once a node is already known to be DRE (see ClassifyNode) -
+    // the plural forms ("RECEITAS", "DESPESAS", "CUSTOS") are how real DRE
+    // section headers are actually worded, but matching them unconditionally
+    // would misfire on unrelated ATIVO lines like "Despesas Antecipadas".
+    private static readonly (string Keyword, string Subtype)[] DreSubtypeKeywords =
+    [
+        ("RECEITA", "RECEITA"),
+        ("RECEITAS", "RECEITA"),
+        ("DESPESA", "DESPESA"),
+        ("DESPESAS", "DESPESA"),
+        ("CUSTO", "CUSTO"),
+        ("CUSTOS", "CUSTO"),
+        // Depreciação/Amortização são, em si, um tipo de despesa - mas só
+        // conta como palavra-chave de Subtipo quando o nó já é DRE (o mesmo
+        // termo aparece em contas de ATIVO como "Depreciações acumuladas",
+        // que não deve virar DESPESA). Normalize() não remove acentos, então
+        // as variantes acentuadas precisam estar listadas explicitamente.
+        ("DEPRECIACAO", "DESPESA"),
+        ("DEPRECIAÇÃO", "DESPESA"),
+        ("DEPRECIACOES", "DESPESA"),
+        ("DEPRECIAÇÕES", "DESPESA"),
+        ("AMORTIZACAO", "DESPESA"),
+        ("AMORTIZAÇÃO", "DESPESA"),
+        ("AMORTIZACOES", "DESPESA"),
+        ("AMORTIZAÇÕES", "DESPESA")
+    ];
+
+    public void Classify(IReadOnlyList<HierarchicalAccount> roots, DocumentType documentType)
     {
+        var rootDefaultType = documentType == DocumentType.IncomeStatement ? "DRE" : null;
+
         foreach (var root in roots)
         {
-            ClassifyNode(root, parentType: null, parentSubtype: null);
+            ClassifyNode(root, parentType: rootDefaultType, parentSubtype: null);
         }
     }
 
@@ -57,7 +91,6 @@ public sealed class TypeSubtypeDetector : ITypeSubtypeDetector
         // "Despesas antecipadas" (an ATIVO/prepaid-expense line, not a DRE
         // entry) just because it contains "DESPESA".
         var typeMatch = TypeKeywords.FirstOrDefault(kv => MatchesWholeWords(normalizedName, kv.Keyword));
-        var subtypeMatch = SubtypeKeywords.FirstOrDefault(kv => MatchesWholeWords(normalizedName, kv.Keyword));
 
         if (typeMatch.Type is not null)
         {
@@ -68,6 +101,12 @@ public sealed class TypeSubtypeDetector : ITypeSubtypeDetector
         {
             node.InferredType = parentType;
             node.TypeConfidence = 0.7f;
+        }
+
+        var subtypeMatch = SubtypeKeywords.FirstOrDefault(kv => MatchesWholeWords(normalizedName, kv.Keyword));
+        if (subtypeMatch.Subtype is null && node.InferredType == "DRE")
+        {
+            subtypeMatch = DreSubtypeKeywords.FirstOrDefault(kv => MatchesWholeWords(normalizedName, kv.Keyword));
         }
 
         if (subtypeMatch.Subtype is not null)

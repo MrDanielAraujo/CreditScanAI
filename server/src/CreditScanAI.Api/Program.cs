@@ -39,6 +39,7 @@ builder.Services.AddSingleton<IDocumentProcessingQueue, DocumentProcessingQueue>
 builder.Services.AddScoped<DocumentProcessingService>();
 builder.Services.AddHostedService<DocumentProcessingBackgroundService>();
 builder.Services.AddScoped<ICurrentTenantProvider, CurrentTenantProvider>();
+builder.Services.AddScoped<FinancialCalculationService>();
 
 builder.Services.AddClassificationEngine(builder.Configuration);
 builder.Services.AddScoped<IClassificationHistoryProvider, EfClassificationHistoryProvider>();

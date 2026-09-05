@@ -54,10 +54,9 @@ public static class DbSeeder
         var naoCirculante = await GetOrCreateAccountSubtypeAsync(db, tenant.Id, ativo.Id, "NAO_CIRCULANTE", "Não Circulante", 2, cancellationToken);
         var permanente = await GetOrCreateAccountSubtypeAsync(db, tenant.Id, ativo.Id, "PERMANENTE", "Permanente", 3, cancellationToken);
         var patrimonioLiquido = await GetOrCreateAccountSubtypeAsync(db, tenant.Id, passivo.Id, "PL", "Patrimônio Líquido", 4, cancellationToken);
-        // DRE line items (receita/despesa/custo) don't have a circulante/não-circulante
-        // notion - this generic subtype exists so DRE standard accounts have
-        // something valid to point AccountSubtypeId at.
-        var geral = await GetOrCreateAccountSubtypeAsync(db, tenant.Id, dre.Id, "GERAL", "Geral", 5, cancellationToken);
+        var receita = await GetOrCreateAccountSubtypeAsync(db, tenant.Id, dre.Id, "RECEITA", "Receita", 5, cancellationToken);
+        var custo = await GetOrCreateAccountSubtypeAsync(db, tenant.Id, dre.Id, "CUSTO", "Custo", 6, cancellationToken);
+        var despesa = await GetOrCreateAccountSubtypeAsync(db, tenant.Id, dre.Id, "DESPESA", "Despesa", 7, cancellationToken);
 
         await EnsureCompatibilityAsync(db, tenant.Id, ativo.Id, circulante.Id, cancellationToken);
         await EnsureCompatibilityAsync(db, tenant.Id, ativo.Id, naoCirculante.Id, cancellationToken);
@@ -65,11 +64,21 @@ public static class DbSeeder
         await EnsureCompatibilityAsync(db, tenant.Id, passivo.Id, circulante.Id, cancellationToken);
         await EnsureCompatibilityAsync(db, tenant.Id, passivo.Id, naoCirculante.Id, cancellationToken);
         await EnsureCompatibilityAsync(db, tenant.Id, passivo.Id, patrimonioLiquido.Id, cancellationToken);
-        await EnsureCompatibilityAsync(db, tenant.Id, dre.Id, geral.Id, cancellationToken);
+        await EnsureCompatibilityAsync(db, tenant.Id, dre.Id, receita.Id, cancellationToken);
+        await EnsureCompatibilityAsync(db, tenant.Id, dre.Id, custo.Id, cancellationToken);
+        await EnsureCompatibilityAsync(db, tenant.Id, dre.Id, despesa.Id, cancellationToken);
+
+        // One-time cleanup for installs seeded before RECEITA/DESPESA/CUSTO
+        // existed (Fase 4): re-point any StandardAccounts still on the old
+        // catch-all "GERAL" subtype, then retire it.
+        await MigrateGeralDreSubtypeAsync(db, tenant.Id, receita, custo, despesa, cancellationToken);
 
         var hasChart = await db.ChartOfAccounts.AnyAsync(c => c.TenantId == tenant.Id, cancellationToken);
         if (hasChart)
         {
+            // Fase 4: installs that already had a chart before Depreciação/
+            // Amortização existed as their own StandardAccounts still need them.
+            await EnsureDepreciationAndAmortizationAccountsAsync(db, tenant.Id, dre, despesa, cancellationToken);
             return;
         }
 
@@ -114,9 +123,11 @@ public static class DbSeeder
             Account("PASSIVO_NCIRC_PROVISOES", "Provisões", passivo, naoCirculante),
             Account("PASSIVO_PL_CAPITAL", "Patrimônio Social", passivo, patrimonioLiquido),
             Account("PASSIVO_PL_SUPERAVIT", "Superávit (Déficit) Acumulado", passivo, patrimonioLiquido),
-            Account("DRE_RECEITA", "Receitas", dre, geral),
-            Account("DRE_CUSTO", "Custos", dre, geral),
-            Account("DRE_DESPESA", "Despesas", dre, geral));
+            Account("DRE_RECEITA", "Receitas", dre, receita),
+            Account("DRE_CUSTO", "Custos", dre, custo),
+            Account("DRE_DESPESA", "Despesas", dre, despesa),
+            Account("DRE_DESPESA_DEPRECIACAO", "Depreciação", dre, despesa),
+            Account("DRE_DESPESA_AMORTIZACAO", "Amortização", dre, despesa));
 
         await db.SaveChangesAsync(cancellationToken);
     }
@@ -149,6 +160,93 @@ public static class DbSeeder
         db.AccountSubtypes.Add(entity);
         await db.SaveChangesAsync(cancellationToken);
         return entity;
+    }
+
+    private static async Task MigrateGeralDreSubtypeAsync(
+        AppDbContext db, Guid tenantId, AccountSubtype receita, AccountSubtype custo, AccountSubtype despesa, CancellationToken cancellationToken)
+    {
+        var geral = await db.AccountSubtypes.FirstOrDefaultAsync(s => s.TenantId == tenantId && s.Code == "GERAL", cancellationToken);
+        if (geral is null)
+        {
+            return;
+        }
+
+        var accountsOnGeral = await db.StandardAccounts
+            .Where(a => a.TenantId == tenantId && a.AccountSubtypeId == geral.Id)
+            .ToListAsync(cancellationToken);
+
+        foreach (var account in accountsOnGeral)
+        {
+            account.AccountSubtypeId = account.Code switch
+            {
+                "DRE_RECEITA" => receita.Id,
+                "DRE_CUSTO" => custo.Id,
+                "DRE_DESPESA" => despesa.Id,
+                _ => account.AccountSubtypeId
+            };
+        }
+
+        var obsoleteCompatibilities = await db.TypeSubtypeCompatibilities
+            .Where(c => c.TenantId == tenantId && c.AccountSubtypeId == geral.Id)
+            .ToListAsync(cancellationToken);
+        db.TypeSubtypeCompatibilities.RemoveRange(obsoleteCompatibilities);
+
+        db.AccountSubtypes.Remove(geral);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static async Task EnsureDepreciationAndAmortizationAccountsAsync(
+        AppDbContext db, Guid tenantId, AccountType dre, AccountSubtype despesa, CancellationToken cancellationToken)
+    {
+        var chart = await db.ChartOfAccounts.FirstOrDefaultAsync(c => c.TenantId == tenantId && c.IsDefault, cancellationToken);
+        if (chart is null)
+        {
+            return;
+        }
+
+        var existingCodes = await db.StandardAccounts
+            .Where(a => a.ChartOfAccountsId == chart.Id)
+            .Select(a => a.Code)
+            .ToListAsync(cancellationToken);
+
+        var toAdd = new List<StandardAccount>();
+        if (!existingCodes.Contains("DRE_DESPESA_DEPRECIACAO"))
+        {
+            toAdd.Add(new StandardAccount
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                ChartOfAccountsId = chart.Id,
+                AccountTypeId = dre.Id,
+                AccountSubtypeId = despesa.Id,
+                Code = "DRE_DESPESA_DEPRECIACAO",
+                Name = "Depreciação",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
+
+        if (!existingCodes.Contains("DRE_DESPESA_AMORTIZACAO"))
+        {
+            toAdd.Add(new StandardAccount
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                ChartOfAccountsId = chart.Id,
+                AccountTypeId = dre.Id,
+                AccountSubtypeId = despesa.Id,
+                Code = "DRE_DESPESA_AMORTIZACAO",
+                Name = "Amortização",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
+
+        if (toAdd.Count > 0)
+        {
+            db.StandardAccounts.AddRange(toAdd);
+            await db.SaveChangesAsync(cancellationToken);
+        }
     }
 
     private static async Task EnsureCompatibilityAsync(

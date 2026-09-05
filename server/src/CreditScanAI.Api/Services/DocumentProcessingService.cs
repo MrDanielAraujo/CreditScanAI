@@ -60,7 +60,7 @@ public class DocumentProcessingService
         try
         {
             var bytes = await _storage.ReadAsync(document.FilePath, cancellationToken);
-            var result = _pipeline.Process(bytes);
+            var result = _pipeline.Process(bytes, document.DocumentType);
 
             var periodIdByColumn = await ResolvePeriodsAsync(document.TenantId, result.DetectedPeriods, cancellationToken);
             var labelByColumn = result.DetectedColumns.ToDictionary(c => c.ColumnIndex, c => c.RawLabel);

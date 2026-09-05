@@ -1,3 +1,4 @@
+using CreditScanAI.Domain.Enums;
 using CreditScanAI.PdfPipeline;
 using CreditScanAI.PdfPipeline.Extraction;
 using CreditScanAI.PdfPipeline.Hierarchy;
@@ -34,7 +35,7 @@ public class PdfExtractionPipelineTests
     {
         var bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestData", "Balanco2Trim2020.pdf"));
 
-        var result = _pipeline.Process(bytes);
+        var result = _pipeline.Process(bytes, DocumentType.BalanceSheet);
 
         _output.WriteLine($"Periods: {string.Join(", ", result.DetectedPeriods.Select(p => p.Date))}");
         _output.WriteLine($"Other columns: {string.Join(", ", result.DetectedColumns.Select(c => c.RawLabel))}");
@@ -78,7 +79,7 @@ public class PdfExtractionPipelineTests
     {
         var bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestData", "Dre2Trim2020.pdf"));
 
-        var result = _pipeline.Process(bytes);
+        var result = _pipeline.Process(bytes, DocumentType.IncomeStatement);
 
         _output.WriteLine($"Periods: {result.DetectedPeriods.Count}, Accounts: {result.HierarchicalAccounts.Count}, Values: {result.AccountValues.Count}");
         _output.WriteLine($"Errors: {string.Join(", ", result.ValidationResult.Errors.Select(e => e.Message))}");
@@ -86,5 +87,41 @@ public class PdfExtractionPipelineTests
         result.DetectedPeriods.Should().NotBeEmpty();
         result.HierarchicalAccounts.Should().NotBeEmpty();
         result.AccountValues.Should().NotBeEmpty();
+
+        // Regression: this real DRE's section headers use plural forms
+        // ("Receitas", "Custos", "Despesas") that the singular-only keyword
+        // list doesn't match on their own text - before DocumentType was
+        // threaded through, every one of these came back with no Subtipo
+        // (and, for a document with no shared DRE ancestor above them, no
+        // Tipo either), so the whole DRE branch was unclassifiable.
+        var allNodes = Flatten(result.HierarchicalAccounts).ToList();
+
+        allNodes.Where(a => a.OriginalName == "Receitas das atividades")
+            .Should().NotBeEmpty().And.OnlyContain(a => a.InferredType == "DRE" && a.InferredSubtype == "RECEITA");
+
+        allNodes.Where(a => a.OriginalName == "Custos operacionais dos programas:")
+            .Should().NotBeEmpty().And.OnlyContain(a => a.InferredType == "DRE" && a.InferredSubtype == "CUSTO");
+
+        allNodes.Where(a => a.OriginalName == "Despesas gerais e administrativas dos programas:")
+            .Should().NotBeEmpty().And.OnlyContain(a => a.InferredType == "DRE" && a.InferredSubtype == "DESPESA");
+
+        // "Depreciação" needs its own Subtipo=DESPESA specifically (not just
+        // inherited Tipo=DRE) since Fase 4 isolates it for the "Resultado
+        // Antes de Depreciação e Amortização" indicator.
+        allNodes.Where(a => a.OriginalName == "Depreciação")
+            .Should().NotBeEmpty().And.OnlyContain(a => a.InferredType == "DRE" && a.InferredSubtype == "DESPESA");
+    }
+
+    private static IEnumerable<CreditScanAI.PdfPipeline.Models.HierarchicalAccount> Flatten(
+        IReadOnlyList<CreditScanAI.PdfPipeline.Models.HierarchicalAccount> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            yield return node;
+            foreach (var descendant in Flatten(node.Children))
+            {
+                yield return descendant;
+            }
+        }
     }
 }

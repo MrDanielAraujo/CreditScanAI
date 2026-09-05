@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using CreditScanAI.Domain.Enums;
 using CreditScanAI.PdfPipeline.Extraction;
 using CreditScanAI.PdfPipeline.Hierarchy;
 using CreditScanAI.PdfPipeline.Models;
@@ -11,7 +12,7 @@ namespace CreditScanAI.PdfPipeline;
 
 public interface IPdfExtractionPipeline
 {
-    ExtractedFinancialData Process(byte[] pdfBytes);
+    ExtractedFinancialData Process(byte[] pdfBytes, DocumentType documentType);
 }
 
 /// <summary>
@@ -61,13 +62,13 @@ public sealed class PdfExtractionPipeline : IPdfExtractionPipeline
         _validator = validator;
     }
 
-    public ExtractedFinancialData Process(byte[] pdfBytes)
+    public ExtractedFinancialData Process(byte[] pdfBytes, DocumentType documentType)
     {
         var words = _wordExtractor.ExtractWords(pdfBytes);
         var table = _tableReconstructor.Reconstruct(words, BodyStartKeywords);
 
         var hierarchy = _hierarchyBuilder.Build(table.DataRows);
-        _typeSubtypeDetector.Classify(hierarchy);
+        _typeSubtypeDetector.Classify(hierarchy, documentType);
 
         var (periods, otherColumns) = _periodDetector.Detect(table.Columns);
         var periodByColumn = periods.ToDictionary(p => p.ColumnIndex, p => p.Date);

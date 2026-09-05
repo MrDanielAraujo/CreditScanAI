@@ -22,6 +22,7 @@ public class AppDbContext : DbContext
     public DbSet<ChartOfAccounts> ChartOfAccounts => Set<ChartOfAccounts>();
     public DbSet<StandardAccount> StandardAccounts => Set<StandardAccount>();
     public DbSet<AccountClassification> AccountClassifications => Set<AccountClassification>();
+    public DbSet<CalculatedFinancialValue> CalculatedFinancialValues => Set<CalculatedFinancialValue>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
