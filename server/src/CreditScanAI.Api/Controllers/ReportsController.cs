@@ -18,7 +18,6 @@ namespace CreditScanAI.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/reports")]
-[AllowAnonymous] // Fase 1 scope: JWT is scaffolded but there's no functional login yet.
 public class ReportsController : ControllerBase
 {
     private readonly AppDbContext _db;

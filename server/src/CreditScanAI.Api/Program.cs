@@ -1,12 +1,17 @@
 using System.Text;
 using System.Threading.RateLimiting;
+using CreditScanAI.Api.Contracts;
 using CreditScanAI.Api.Middleware;
 using CreditScanAI.Api.Services;
 using CreditScanAI.Classification;
+using CreditScanAI.Domain.Entities;
+using CreditScanAI.Domain.Enums;
 using CreditScanAI.Infrastructure.Persistence;
 using CreditScanAI.Infrastructure.Persistence.Seed;
 using CreditScanAI.PdfPipeline;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -38,6 +43,7 @@ builder.Services.AddSingleton<IDocumentStorage, LocalDiskDocumentStorage>();
 builder.Services.AddSingleton<IDocumentProcessingQueue, DocumentProcessingQueue>();
 builder.Services.AddScoped<DocumentProcessingService>();
 builder.Services.AddHostedService<DocumentProcessingBackgroundService>();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentTenantProvider, CurrentTenantProvider>();
 builder.Services.AddScoped<FinancialCalculationService>();
 builder.Services.AddScoped<ConsolidationService>();
@@ -48,6 +54,24 @@ builder.Services.AddScoped<ICrossCompanyPatternProvider, EfCrossCompanyPatternPr
 builder.Services.AddSingleton<IClassificationProcessingQueue, ClassificationProcessingQueue>();
 builder.Services.AddScoped<ClassificationProcessingService>();
 builder.Services.AddHostedService<ClassificationProcessingBackgroundService>();
+
+// Fase 8: autenticação real. AddIdentityCore (não AddIdentity) - é a
+// variante enxuta para APIs, sem os pressupostos de cookie/Razor Pages da
+// versão completa. Só o user store é registrado (AddEntityFrameworkStores) -
+// não há RoleManager/AspNetRoles em uso, papéis são o enum UserRole simples.
+builder.Services
+    .AddIdentityCore<User>(options =>
+    {
+        options.Password.RequiredLength = 8;
+        options.Password.RequireNonAlphanumeric = false;
+        options.User.RequireUniqueEmail = true;
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+    })
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
+builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("Jwt:Key não configurada.");
@@ -65,9 +89,39 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = jwtSection["Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
+
+        // Sem isso, uma requisição sem token (401) ou sem o papel exigido
+        // (403) volta com corpo vazio - quebra o parser do frontend, que
+        // espera o envelope ApiResponse<T> em toda resposta, erro ou não.
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = async context =>
+            {
+                context.HandleResponse();
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsJsonAsync(ApiResponse<object>.Fail("UNAUTHORIZED", "Autenticação necessária."));
+            },
+            OnForbidden = async context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsJsonAsync(ApiResponse<object>.Fail("FORBIDDEN", "Você não tem permissão para executar esta ação."));
+            }
+        };
     });
 
-builder.Services.AddAuthorization();
+// Fase 8 Parte 2: aplica a matriz de permissões de 10_CASOS_DE_USO.md seção
+// 5 (Analyst/Reviewer/CFO/Admin/Compliance x Login/Upload/Review/Consolidate/
+// Export/Admin). "Export" (leitura) não tem policy própria - qualquer
+// usuário autenticado já cobre isso via FallbackPolicy, então só as ações de
+// escrita/processamento mais restritas ganham uma policy nomeada.
+builder.Services.AddAuthorizationBuilder()
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
+    .AddPolicy(AuthorizationPolicies.CanUpload, p => p.RequireRole(nameof(UserRole.Analyst), nameof(UserRole.Admin)))
+    .AddPolicy(AuthorizationPolicies.CanReview, p => p.RequireRole(nameof(UserRole.Analyst), nameof(UserRole.Reviewer), nameof(UserRole.Admin)))
+    .AddPolicy(AuthorizationPolicies.CanConsolidate, p => p.RequireRole(nameof(UserRole.Analyst), nameof(UserRole.Admin)))
+    .AddPolicy(AuthorizationPolicies.CanAdmin, p => p.RequireRole(nameof(UserRole.Admin)));
 
 const string FrontendCorsPolicy = "Frontend";
 builder.Services.AddCors(options =>

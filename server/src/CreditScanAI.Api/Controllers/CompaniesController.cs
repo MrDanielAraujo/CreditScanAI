@@ -15,7 +15,6 @@ namespace CreditScanAI.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/companies")]
-[AllowAnonymous] // Fase 1 scope: JWT is scaffolded but there's no functional login yet.
 public class CompaniesController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -52,6 +51,7 @@ public class CompaniesController : ControllerBase
         return Ok(ApiResponse<CompanyDto>.Ok(ToDto(entity)));
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<CompanyDto>>> Create(UpsertCompanyRequest request, CancellationToken cancellationToken)
     {
@@ -89,6 +89,7 @@ public class CompaniesController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = entity.Id }, ApiResponse<CompanyDto>.Ok(ToDto(entity)));
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<ApiResponse<CompanyDto>>> Update(Guid id, UpsertCompanyRequest request, CancellationToken cancellationToken)
     {
@@ -123,6 +124,7 @@ public class CompaniesController : ControllerBase
         return Ok(ApiResponse<CompanyDto>.Ok(ToDto(entity)));
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult<ApiResponse<object>>> Delete(Guid id, CancellationToken cancellationToken)
     {

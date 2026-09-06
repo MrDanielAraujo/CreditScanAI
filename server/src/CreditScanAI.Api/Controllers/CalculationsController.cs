@@ -16,7 +16,6 @@ namespace CreditScanAI.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/calculations")]
-[AllowAnonymous] // Fase 1 scope: JWT is scaffolded but there's no functional login yet.
 public class CalculationsController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -28,6 +27,7 @@ public class CalculationsController : ControllerBase
         _calculationService = calculationService;
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanConsolidate)]
     [HttpPost("companies/{companyId:guid}/periods/{periodId:guid}/calculate")]
     public async Task<ActionResult<ApiResponse<CalculationResultResponse>>> Calculate(
         Guid companyId, Guid periodId, CancellationToken cancellationToken)

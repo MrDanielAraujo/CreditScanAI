@@ -11,11 +11,11 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CreditScanAI.Tests.Api;
 
 [Collection(ApiHostTestCollection.Name)]
-public class DocumentsControllerTests : IClassFixture<DocumentsApiWebApplicationFactory>
+public class DocumentsControllerTests : IClassFixture<AuthorizedApiWebApplicationFactory>
 {
-    private readonly DocumentsApiWebApplicationFactory _factory;
+    private readonly AuthorizedApiWebApplicationFactory _factory;
 
-    public DocumentsControllerTests(DocumentsApiWebApplicationFactory factory)
+    public DocumentsControllerTests(AuthorizedApiWebApplicationFactory factory)
     {
         _factory = factory;
         _factory.FixturePdfBytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestData", "Balanco2Trim2020.pdf"));

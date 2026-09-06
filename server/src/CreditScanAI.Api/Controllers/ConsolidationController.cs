@@ -9,7 +9,7 @@ namespace CreditScanAI.Api.Controllers;
 /// <summary>Fase 5 (Motor de Consolidação): Consolidação Simples (soma) sob demanda.</summary>
 [ApiController]
 [Route("api/consolidation")]
-[AllowAnonymous] // Fase 1 scope: JWT is scaffolded but there's no functional login yet.
+[Authorize(Policy = AuthorizationPolicies.CanConsolidate)]
 public class ConsolidationController : ControllerBase
 {
     private readonly ConsolidationService _consolidationService;

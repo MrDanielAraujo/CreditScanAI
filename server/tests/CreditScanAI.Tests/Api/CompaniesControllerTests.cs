@@ -11,12 +11,12 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CreditScanAI.Tests.Api;
 
 [Collection(ApiHostTestCollection.Name)]
-public class CompaniesControllerTests : IClassFixture<DocumentsApiWebApplicationFactory>
+public class CompaniesControllerTests : IClassFixture<AuthorizedApiWebApplicationFactory>
 {
-    private readonly DocumentsApiWebApplicationFactory _factory;
+    private readonly AuthorizedApiWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
-    public CompaniesControllerTests(DocumentsApiWebApplicationFactory factory)
+    public CompaniesControllerTests(AuthorizedApiWebApplicationFactory factory)
     {
         _factory = factory;
 

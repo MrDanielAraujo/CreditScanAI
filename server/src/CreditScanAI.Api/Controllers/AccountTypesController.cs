@@ -11,7 +11,6 @@ namespace CreditScanAI.Api.Controllers;
 
 [ApiController]
 [Route("api/account-types")]
-[AllowAnonymous] // Fase 1 scope: JWT is scaffolded but there's no functional login yet.
 public class AccountTypesController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -49,6 +48,7 @@ public class AccountTypesController : ControllerBase
         return Ok(ApiResponse<AccountTypeDto>.Ok(new AccountTypeDto(entity.Id, entity.Code, entity.Name, entity.Description, entity.SequenceOrder)));
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<AccountTypeDto>>> Create(UpsertAccountTypeRequest request, CancellationToken cancellationToken)
     {
@@ -83,6 +83,7 @@ public class AccountTypesController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = entity.Id }, ApiResponse<AccountTypeDto>.Ok(dto));
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<ApiResponse<AccountTypeDto>>> Update(Guid id, UpsertAccountTypeRequest request, CancellationToken cancellationToken)
     {
@@ -113,6 +114,7 @@ public class AccountTypesController : ControllerBase
         return Ok(ApiResponse<AccountTypeDto>.Ok(new AccountTypeDto(entity.Id, entity.Code, entity.Name, entity.Description, entity.SequenceOrder)));
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult<ApiResponse<object>>> Delete(Guid id, CancellationToken cancellationToken)
     {

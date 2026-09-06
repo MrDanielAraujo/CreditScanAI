@@ -6,4 +6,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Just the IdentityUser<TKey> base class (Email/PasswordHash/Lockout
+         fields) - not the EF Core-backed store package, to keep Domain free
+         of infrastructure dependencies. -->
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="10.0.0" />
+  </ItemGroup>
+
 </Project>

@@ -1,4 +1,5 @@
 import { apiGet, apiPost, API_BASE_URL } from './apiClient'
+import { getStoredToken } from './authStorage'
 import type {
   Company,
   DocumentListResponse,
@@ -24,8 +25,10 @@ export async function uploadDocument(
   form.append('companyId', companyId)
   form.append('documentType', documentType)
 
+  const token = getStoredToken()
   const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
     method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     body: form,
   })
 

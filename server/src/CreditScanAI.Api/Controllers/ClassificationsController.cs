@@ -1,5 +1,6 @@
 using CreditScanAI.Api.Contracts;
 using CreditScanAI.Api.Contracts.Classifications;
+using CreditScanAI.Api.Services;
 using CreditScanAI.Domain.Enums;
 using CreditScanAI.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -14,7 +15,7 @@ namespace CreditScanAI.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/classifications")]
-[AllowAnonymous] // Fase 1 scope: JWT is scaffolded but there's no functional login yet.
+[Authorize(Policy = AuthorizationPolicies.CanReview)]
 public class ClassificationsController : ControllerBase
 {
     private const int DefaultLimit = 50;

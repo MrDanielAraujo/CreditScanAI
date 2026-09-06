@@ -12,7 +12,6 @@ namespace CreditScanAI.Api.Controllers;
 
 [ApiController]
 [Route("api/chart-of-accounts")]
-[AllowAnonymous]
 public class ChartOfAccountsController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -54,6 +53,7 @@ public class ChartOfAccountsController : ControllerBase
         return Ok(ApiResponse<ChartOfAccountsDto>.Ok(ToDto(entity)));
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<ChartOfAccountsDto>>> Create(UpsertChartOfAccountsRequest request, CancellationToken cancellationToken)
     {
@@ -97,6 +97,7 @@ public class ChartOfAccountsController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = entity.Id }, ApiResponse<ChartOfAccountsDto>.Ok(ToDto(entity)));
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<ApiResponse<ChartOfAccountsDto>>> Update(Guid id, UpsertChartOfAccountsRequest request, CancellationToken cancellationToken)
     {
@@ -126,6 +127,7 @@ public class ChartOfAccountsController : ControllerBase
         return Ok(ApiResponse<ChartOfAccountsDto>.Ok(ToDto(entity)));
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
     [HttpPost("{id:guid}/set-default")]
     public async Task<ActionResult<ApiResponse<ChartOfAccountsDto>>> SetDefault(Guid id, CancellationToken cancellationToken)
     {
@@ -175,6 +177,7 @@ public class ChartOfAccountsController : ControllerBase
         }
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult<ApiResponse<object>>> Delete(Guid id, CancellationToken cancellationToken)
     {

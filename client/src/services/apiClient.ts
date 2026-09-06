@@ -1,4 +1,5 @@
 import type { ApiResponse } from '../types/api'
+import { getStoredToken } from './authStorage'
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5080'
 
@@ -12,15 +13,20 @@ async function unwrap<T>(response: Response): Promise<T> {
   return body.data as T
 }
 
+function authHeaders(): Record<string, string> {
+  const token = getStoredToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
-  return unwrap<T>(await fetch(`${API_BASE_URL}${path}`))
+  return unwrap<T>(await fetch(`${API_BASE_URL}${path}`, { headers: authHeaders() }))
 }
 
 export async function apiPost<T>(path: string, payload?: unknown): Promise<T> {
   return unwrap<T>(
     await fetch(`${API_BASE_URL}${path}`, {
       method: 'POST',
-      headers: payload === undefined ? undefined : { 'Content-Type': 'application/json' },
+      headers: { ...authHeaders(), ...(payload === undefined ? {} : { 'Content-Type': 'application/json' }) },
       body: payload === undefined ? undefined : JSON.stringify(payload),
     }),
   )
@@ -30,12 +36,12 @@ export async function apiPut<T>(path: string, payload: unknown): Promise<T> {
   return unwrap<T>(
     await fetch(`${API_BASE_URL}${path}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     }),
   )
 }
 
 export async function apiDelete<T>(path: string): Promise<T> {
-  return unwrap<T>(await fetch(`${API_BASE_URL}${path}`, { method: 'DELETE' }))
+  return unwrap<T>(await fetch(`${API_BASE_URL}${path}`, { method: 'DELETE', headers: authHeaders() }))
 }

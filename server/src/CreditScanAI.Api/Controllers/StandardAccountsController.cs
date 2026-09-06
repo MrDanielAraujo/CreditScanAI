@@ -11,7 +11,6 @@ namespace CreditScanAI.Api.Controllers;
 
 [ApiController]
 [Route("api/standard-accounts")]
-[AllowAnonymous]
 public class StandardAccountsController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -59,6 +58,7 @@ public class StandardAccountsController : ControllerBase
         return Ok(ApiResponse<StandardAccountDto>.Ok(ToDto(entity)));
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<StandardAccountDto>>> Create(UpsertStandardAccountRequest request, CancellationToken cancellationToken)
     {
@@ -90,6 +90,7 @@ public class StandardAccountsController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = entity.Id }, ApiResponse<StandardAccountDto>.Ok(ToDto(entity)));
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<ApiResponse<StandardAccountDto>>> Update(Guid id, UpsertStandardAccountRequest request, CancellationToken cancellationToken)
     {
@@ -118,6 +119,7 @@ public class StandardAccountsController : ControllerBase
         return Ok(ApiResponse<StandardAccountDto>.Ok(ToDto(entity)));
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult<ApiResponse<object>>> Delete(Guid id, CancellationToken cancellationToken)
     {

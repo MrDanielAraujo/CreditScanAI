@@ -10,11 +10,11 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CreditScanAI.Tests.Api;
 
 [Collection(ApiHostTestCollection.Name)]
-public class RegistrationsControllerTests : IClassFixture<DocumentsApiWebApplicationFactory>
+public class RegistrationsControllerTests : IClassFixture<AuthorizedApiWebApplicationFactory>
 {
     private readonly HttpClient _client;
 
-    public RegistrationsControllerTests(DocumentsApiWebApplicationFactory factory)
+    public RegistrationsControllerTests(AuthorizedApiWebApplicationFactory factory)
     {
         // Reuses the InMemory-DB factory from the documents tests; the file
         // storage override it also sets up is simply unused here.
@@ -69,7 +69,7 @@ public class RegistrationsControllerTests : IClassFixture<DocumentsApiWebApplica
     {
         // A fresh tenant-per-test-class factory instance means the very
         // first chart created here has no pre-existing default to compete with.
-        using var isolatedFactory = new DocumentsApiWebApplicationFactory();
+        using var isolatedFactory = new AuthorizedApiWebApplicationFactory();
         using var scope = isolatedFactory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         db.Tenants.Add(new Tenant { Id = Guid.NewGuid(), Name = "Isolated Tenant", Active = true, CreatedAt = DateTime.UtcNow });

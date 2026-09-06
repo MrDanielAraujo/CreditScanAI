@@ -11,7 +11,6 @@ namespace CreditScanAI.Api.Controllers;
 
 [ApiController]
 [Route("api/account-subtypes")]
-[AllowAnonymous]
 public class AccountSubtypesController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -52,6 +51,7 @@ public class AccountSubtypesController : ControllerBase
         return Ok(ApiResponse<AccountSubtypeDto>.Ok(ToDto(entity)));
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<AccountSubtypeDto>>> Create(UpsertAccountSubtypeRequest request, CancellationToken cancellationToken)
     {
@@ -104,6 +104,7 @@ public class AccountSubtypesController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = entity.Id }, ApiResponse<AccountSubtypeDto>.Ok(ToDto(entity)));
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<ApiResponse<AccountSubtypeDto>>> Update(Guid id, UpsertAccountSubtypeRequest request, CancellationToken cancellationToken)
     {
@@ -141,6 +142,7 @@ public class AccountSubtypesController : ControllerBase
         return Ok(ApiResponse<AccountSubtypeDto>.Ok(ToDto(entity)));
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult<ApiResponse<object>>> Delete(Guid id, CancellationToken cancellationToken)
     {

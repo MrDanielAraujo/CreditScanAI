@@ -13,7 +13,6 @@ namespace CreditScanAI.Api.Controllers;
 
 [ApiController]
 [Route("api/documents")]
-[AllowAnonymous] // Fase 1 scope: JWT is scaffolded but there's no functional login yet.
 public class DocumentsController : ControllerBase
 {
     private const long MaxFileSizeBytes = 100 * 1024 * 1024; // 100MB, per 10_CASOS_DE_USO.md UC-02
@@ -105,6 +104,7 @@ public class DocumentsController : ControllerBase
     /// estão disponíveis para casar com ela. ClassificationProcessingService
     /// já atualiza (não duplica) as classificações existentes.
     /// </summary>
+    [Authorize(Policy = AuthorizationPolicies.CanUpload)]
     [HttpPost("{id:guid}/reprocess")]
     public async Task<ActionResult<ApiResponse<ReprocessDocumentResponse>>> Reprocess(Guid id, CancellationToken cancellationToken)
     {
@@ -126,6 +126,7 @@ public class DocumentsController : ControllerBase
             new ReprocessDocumentResponse(id, document.ClassificationStatus.ToString())));
     }
 
+    [Authorize(Policy = AuthorizationPolicies.CanUpload)]
     [HttpPost("upload")]
     [RequestSizeLimit(MaxFileSizeBytes)]
     public async Task<ActionResult<ApiResponse<UploadDocumentResponse>>> Upload(

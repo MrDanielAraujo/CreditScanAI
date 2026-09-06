@@ -15,7 +15,6 @@ namespace CreditScanAI.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/learning")]
-[AllowAnonymous] // Fase 1 scope: JWT is scaffolded but there's no functional login yet.
 public class LearningController : ControllerBase
 {
     private const int TopAccountsLimit = 5;
