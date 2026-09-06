@@ -4,6 +4,7 @@ import { FinancialValueGrid } from '../components/financial/FinancialValueGrid'
 import { BALANCO_VALUES, DRE_VALUES, formatFinancialValue, INDICADORES } from '../components/financial/financialValueDefinitions'
 import { calculationsApi } from '../services/calculationsApi'
 import { listCompanies } from '../services/documentsApi'
+import { reportsApi } from '../services/reportsApi'
 import type { CalculationResult, Period } from '../types/calculations'
 import type { Company } from '../types/documents'
 
@@ -23,6 +24,7 @@ export function DashboardPage() {
   const [calculating, setCalculating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notCalculatedYet, setNotCalculatedYet] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   useEffect(() => {
     listCompanies()
@@ -55,6 +57,15 @@ export function DashboardPage() {
       .catch(() => setNotCalculatedYet(true))
       .finally(() => setLoading(false))
   }, [companyId, periodId])
+
+  const handleExport = async (format: 'pdf' | 'xlsx') => {
+    setExportError(null)
+    try {
+      await reportsApi.exportCompanyStatement(companyId, periodId, format)
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Erro ao exportar')
+    }
+  }
 
   const handleCalculate = async () => {
     if (!companyId || !periodId) return
@@ -122,10 +133,22 @@ export function DashboardPage() {
       )}
 
       {!loading && result && (
-        <div>
-          <div className={['mt-6 inline-block rounded-md px-3 py-2 text-sm', result.equationBalanced ? 'bg-success/10 text-success' : 'bg-error/10 text-error'].join(' ')}>
-            Equação Ativo = Passivo + PL: {result.equationBalanced ? 'balanceada' : `desbalanceada (diferença de ${formatFinancialValue(result.equationVariance, 'currency')})`}
+        <div className="mt-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className={['inline-block rounded-md px-3 py-2 text-sm', result.equationBalanced ? 'bg-success/10 text-success' : 'bg-error/10 text-error'].join(' ')}>
+              Equação Ativo = Passivo + PL: {result.equationBalanced ? 'balanceada' : `desbalanceada (diferença de ${formatFinancialValue(result.equationVariance, 'currency')})`}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="secondary" size="small" onClick={() => handleExport('pdf')}>
+                Baixar PDF
+              </Button>
+              <Button variant="secondary" size="small" onClick={() => handleExport('xlsx')}>
+                Baixar Excel
+              </Button>
+            </div>
           </div>
+
+          {exportError && <p className="mt-2 text-sm text-error">{exportError}</p>}
 
           <FinancialValueGrid title="Balanço" definitions={BALANCO_VALUES} values={result.values} />
           <FinancialValueGrid title="DRE" definitions={DRE_VALUES} values={result.values} />

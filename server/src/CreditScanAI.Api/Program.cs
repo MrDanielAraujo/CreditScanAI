@@ -15,7 +15,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using QuestPDF.Infrastructure;
 using Serilog;
+
+// Fase 10: licença Community, gratuita para o porte deste projeto (o pacote
+// exige declarar isso explicitamente antes de gerar qualquer PDF).
+QuestPDF.Settings.License = LicenseType.Community;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()

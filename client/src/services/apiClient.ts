@@ -45,3 +45,30 @@ export async function apiPut<T>(path: string, payload: unknown): Promise<T> {
 export async function apiDelete<T>(path: string): Promise<T> {
   return unwrap<T>(await fetch(`${API_BASE_URL}${path}`, { method: 'DELETE', headers: authHeaders() }))
 }
+
+function filenameFromContentDisposition(header: string | null, fallback: string): string {
+  const match = header?.match(/filename="?([^"]+)"?/)
+  return match?.[1] ?? fallback
+}
+
+/** Baixa um arquivo binário (PDF/Excel) autenticado - fetch normal não anexa o token, um <a href> puro também não. */
+export async function apiDownload(path: string, fallbackFilename: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}${path}`, { headers: authHeaders() })
+
+  if (!response.ok) {
+    const body: ApiResponse<unknown> = await response.json()
+    throw new Error(body.error?.message ?? `HTTP ${response.status}`)
+  }
+
+  const blob = await response.blob()
+  const filename = filenameFromContentDisposition(response.headers.get('Content-Disposition'), fallbackFilename)
+
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}

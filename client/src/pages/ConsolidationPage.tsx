@@ -5,6 +5,7 @@ import { BALANCO_VALUES, DRE_VALUES, formatFinancialValue, INDICADORES } from '.
 import { companiesApi } from '../services/companiesApi'
 import { consolidationApi } from '../services/consolidationApi'
 import { listCompanies } from '../services/documentsApi'
+import { reportsApi } from '../services/reportsApi'
 import type { Period } from '../types/calculations'
 import type { ConsolidationResult } from '../types/consolidation'
 import type { Company } from '../types/documents'
@@ -23,6 +24,7 @@ export function ConsolidationPage() {
   const [result, setResult] = useState<ConsolidationResult | null>(null)
   const [calculating, setCalculating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   useEffect(() => {
     listCompanies()
@@ -62,6 +64,15 @@ export function ConsolidationPage() {
       setError(err instanceof Error ? err.message : 'Erro ao consolidar')
     } finally {
       setCalculating(false)
+    }
+  }
+
+  const handleExport = async (format: 'pdf' | 'xlsx') => {
+    setExportError(null)
+    try {
+      await reportsApi.exportConsolidatedStatement(periodId, selectedCompanyIds, format)
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Erro ao exportar')
     }
   }
 
@@ -112,9 +123,21 @@ export function ConsolidationPage() {
 
       {result && (
         <div>
-          <div className={['mt-6 inline-block rounded-md px-3 py-2 text-sm', result.equationBalanced ? 'bg-success/10 text-success' : 'bg-error/10 text-error'].join(' ')}>
-            Equação Ativo = Passivo + PL: {result.equationBalanced ? 'balanceada' : `desbalanceada (diferença de ${formatFinancialValue(result.equationVariance, 'currency')})`}
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+            <div className={['inline-block rounded-md px-3 py-2 text-sm', result.equationBalanced ? 'bg-success/10 text-success' : 'bg-error/10 text-error'].join(' ')}>
+              Equação Ativo = Passivo + PL: {result.equationBalanced ? 'balanceada' : `desbalanceada (diferença de ${formatFinancialValue(result.equationVariance, 'currency')})`}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="secondary" size="small" onClick={() => handleExport('pdf')}>
+                Baixar PDF
+              </Button>
+              <Button variant="secondary" size="small" onClick={() => handleExport('xlsx')}>
+                Baixar Excel
+              </Button>
+            </div>
           </div>
+
+          {exportError && <p className="mt-2 text-sm text-error">{exportError}</p>}
 
           <FinancialValueGrid title="Balanço Consolidado" definitions={BALANCO_VALUES} values={result.values} />
           <FinancialValueGrid title="DRE Consolidado" definitions={DRE_VALUES} values={result.values} />
