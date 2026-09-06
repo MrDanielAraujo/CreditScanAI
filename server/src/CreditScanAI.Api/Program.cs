@@ -72,6 +72,7 @@ builder.Services
     .AddDefaultTokenProviders();
 
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+builder.Services.AddScoped<IEmailSender, LoggingEmailSender>();
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("Jwt:Key não configurada.");
@@ -121,7 +122,8 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(AuthorizationPolicies.CanUpload, p => p.RequireRole(nameof(UserRole.Analyst), nameof(UserRole.Admin)))
     .AddPolicy(AuthorizationPolicies.CanReview, p => p.RequireRole(nameof(UserRole.Analyst), nameof(UserRole.Reviewer), nameof(UserRole.Admin)))
     .AddPolicy(AuthorizationPolicies.CanConsolidate, p => p.RequireRole(nameof(UserRole.Analyst), nameof(UserRole.Admin)))
-    .AddPolicy(AuthorizationPolicies.CanAdmin, p => p.RequireRole(nameof(UserRole.Admin)));
+    .AddPolicy(AuthorizationPolicies.CanAdmin, p => p.RequireRole(nameof(UserRole.Admin)))
+    .AddPolicy(AuthorizationPolicies.CanAudit, p => p.RequireRole(nameof(UserRole.Admin), nameof(UserRole.Compliance)));
 
 const string FrontendCorsPolicy = "Frontend";
 builder.Services.AddCors(options =>

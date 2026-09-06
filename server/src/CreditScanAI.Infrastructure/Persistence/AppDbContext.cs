@@ -30,6 +30,7 @@ public class AppDbContext : IdentityUserContext<User, Guid>
     public DbSet<StandardAccount> StandardAccounts => Set<StandardAccount>();
     public DbSet<AccountClassification> AccountClassifications => Set<AccountClassification>();
     public DbSet<CalculatedFinancialValue> CalculatedFinancialValues => Set<CalculatedFinancialValue>();
+    public DbSet<LoginAuditEntry> LoginAuditEntries => Set<LoginAuditEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

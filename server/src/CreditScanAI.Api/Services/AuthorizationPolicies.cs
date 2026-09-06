@@ -12,4 +12,11 @@ public static class AuthorizationPolicies
     public const string CanReview = "CanReview";
     public const string CanConsolidate = "CanConsolidate";
     public const string CanAdmin = "CanAdmin";
+
+    /// <summary>
+    /// The permission matrix's "Admin" column for Compliance is annotated
+    /// "audit only" - this policy is that carve-out, used only by the
+    /// login-audit endpoint (Fase 8 Parte 3 / UC-10).
+    /// </summary>
+    public const string CanAudit = "CanAudit";
 }

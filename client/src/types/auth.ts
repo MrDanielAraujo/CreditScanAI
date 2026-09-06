@@ -20,3 +20,22 @@ export interface AuthResponse {
   token: string
   user: UserSummary
 }
+
+export interface ForgotPasswordRequest {
+  email: string
+}
+
+export interface ResetPasswordRequest {
+  email: string
+  token: string
+  newPassword: string
+}
+
+export interface LoginAuditEntry {
+  id: string
+  email: string
+  success: boolean
+  failureReason: string | null
+  ipAddress: string | null
+  attemptedAt: string
+}

@@ -57,7 +57,13 @@ export function LoginPage() {
           Entrar
         </Button>
 
-        <p className="mt-4 text-center text-sm text-neutral">
+        <p className="mt-3 text-center text-sm">
+          <Link to="/forgot-password" className="text-primary hover:underline">
+            Esqueceu sua senha?
+          </Link>
+        </p>
+
+        <p className="mt-2 text-center text-sm text-neutral">
           Não tem conta?{' '}
           <Link to="/register" className="text-primary hover:underline">
             Cadastre-se

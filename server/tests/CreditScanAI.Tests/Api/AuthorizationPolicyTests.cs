@@ -152,4 +152,29 @@ public class AuthorizationPolicyTests : IClassFixture<AuthorizedApiWebApplicatio
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
+
+    [Theory]
+    [InlineData(UserRole.Analyst)]
+    [InlineData(UserRole.Reviewer)]
+    [InlineData(UserRole.CFO)]
+    public async Task Audit_NonAuditRole_ReturnsForbidden(UserRole role)
+    {
+        var client = ClientAs(role);
+
+        var response = await client.GetAsync("/api/auth/login-audit");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Theory]
+    [InlineData(UserRole.Admin)]
+    [InlineData(UserRole.Compliance)]
+    public async Task Audit_AuditRole_IsAllowed(UserRole role)
+    {
+        var client = ClientAs(role);
+
+        var response = await client.GetAsync("/api/auth/login-audit");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
 }

@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useAuth } from '../../contexts/authContextValue'
 
 const links = [
   { to: '/', label: 'Dashboard' },
@@ -25,6 +26,12 @@ function linkClassName({ isActive }: { isActive: boolean }) {
 }
 
 export function Sidebar() {
+  const { user } = useAuth()
+  // Auditoria (UC-10) é só Admin/Compliance na matriz de permissões - o
+  // backend já bloqueia qualquer outro papel, isso só evita mostrar um link
+  // que sempre daria 403 para quem não pode usá-lo.
+  const canSeeAudit = user?.role === 'Admin' || user?.role === 'Compliance'
+
   return (
     <nav className="w-56 shrink-0 border-r border-neutral/20 bg-surface p-4">
       <ul className="flex flex-col gap-1">
@@ -35,6 +42,13 @@ export function Sidebar() {
             </NavLink>
           </li>
         ))}
+        {canSeeAudit && (
+          <li>
+            <NavLink to="/audit/logins" className={linkClassName}>
+              Auditoria de Login
+            </NavLink>
+          </li>
+        )}
       </ul>
 
       <p className="mt-4 mb-1 px-3 text-xs font-semibold uppercase text-neutral">Cadastros</p>

@@ -9,10 +9,13 @@ import { CompaniesPage } from './pages/CompaniesPage'
 import { ConsolidationPage } from './pages/ConsolidationPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { DocumentsPage } from './pages/DocumentsPage'
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LearningPage } from './pages/LearningPage'
+import { LoginAuditPage } from './pages/LoginAuditPage'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { ReviewPage } from './pages/ReviewPage'
 import { StandardAccountsPage } from './pages/StandardAccountsPage'
 import { UploadPage } from './pages/UploadPage'
@@ -26,6 +29,7 @@ function AppRoutes() {
       <Route path="/review" element={<ReviewPage />} />
       <Route path="/consolidation" element={<ConsolidationPage />} />
       <Route path="/learning" element={<LearningPage />} />
+      <Route path="/audit/logins" element={<LoginAuditPage />} />
       <Route path="/registrations/companies" element={<CompaniesPage />} />
       <Route path="/registrations/account-types" element={<AccountTypesPage />} />
       <Route path="/registrations/account-subtypes" element={<AccountSubtypesPage />} />
@@ -42,6 +46,8 @@ export function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route
           path="/*"
           element={
