@@ -43,7 +43,12 @@ public sealed class TypeSubtypeDetector : ITypeSubtypeDetector
         ("CURTO PRAZO", "CIRCULANTE"),
         ("PERMANENTE", "PERMANENTE"),
         ("PATRIMONIO LIQUIDO", "PL"),
-        ("PATRIMÔNIO LÍQUIDO", "PL")
+        ("PATRIMÔNIO LÍQUIDO", "PL"),
+        // "Patrimônio Social" é como entidades sem fins lucrativos chamam a
+        // mesma seção que empresas chamam de "Patrimônio Líquido" - mesmo
+        // conceito contábil (Ativo - Passivo), nome diferente.
+        ("PATRIMONIO SOCIAL", "PL"),
+        ("PATRIMÔNIO SOCIAL", "PL")
     ];
 
     // Only tried once a node is already known to be DRE (see ClassifyNode) -

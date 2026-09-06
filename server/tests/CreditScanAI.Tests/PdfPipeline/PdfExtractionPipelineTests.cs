@@ -72,6 +72,20 @@ public class PdfExtractionPipelineTests
         var caixaValue = result.AccountValues.Should().ContainSingle(v =>
             v.SourceAccountName == "Caixa e bancos" && v.ColumnIndex == consolidadoJun2020).Subject;
         caixaValue.Value.Should().Be(1_067_737.38m);
+
+        // Regression: this nonprofit's equity section is headed "Patrimônio
+        // social:" - the corporate synonym "Patrimônio Líquido" was the only
+        // one recognized, so every line under here (and the Patrimônio
+        // Líquido total itself) came back with no Subtipo=PL, and the
+        // Fase 4 calculation engine always summed PatrimonioLiquido as zero.
+        var patrimonioSocial = result.HierarchicalAccounts
+            .SelectMany(a => a.Children)
+            .Should().ContainSingle(a => a.OriginalName == "Patrimônio social:").Subject;
+        patrimonioSocial.InferredType.Should().Be("PASSIVO");
+        patrimonioSocial.InferredSubtype.Should().Be("PL");
+
+        var superavitAcumulado = patrimonioSocial.Children.Should().ContainSingle(a => a.OriginalName == "Superávit (déficit) dos exercícios").Subject;
+        superavitAcumulado.InferredSubtype.Should().Be("PL");
     }
 
     [Fact]
