@@ -17,16 +17,113 @@ namespace CreditScanAI.Api.Controllers;
 public class DocumentsController : ControllerBase
 {
     private const long MaxFileSizeBytes = 100 * 1024 * 1024; // 100MB, per 10_CASOS_DE_USO.md UC-02
+    private const int DefaultLimit = 50;
+    private const int MaxLimit = 200;
 
     private readonly AppDbContext _db;
     private readonly IDocumentStorage _storage;
     private readonly IDocumentProcessingQueue _queue;
+    private readonly IClassificationProcessingQueue _classificationQueue;
 
-    public DocumentsController(AppDbContext db, IDocumentStorage storage, IDocumentProcessingQueue queue)
+    public DocumentsController(
+        AppDbContext db, IDocumentStorage storage, IDocumentProcessingQueue queue, IClassificationProcessingQueue classificationQueue)
     {
         _db = db;
         _storage = storage;
         _queue = queue;
+        _classificationQueue = classificationQueue;
+    }
+
+    /// <summary>
+    /// Gerenciamento de Documentos (Fase 7): lista todos os documentos já
+    /// enviados, com filtros - não existia nenhuma tela para isso antes, só
+    /// o fluxo de Upload em si.
+    /// </summary>
+    [HttpGet]
+    public async Task<ActionResult<ApiResponse<DocumentListResponse>>> List(
+        [FromQuery] Guid? companyId,
+        [FromQuery] string? documentType,
+        [FromQuery] string? search,
+        [FromQuery] int limit,
+        [FromQuery] int offset,
+        CancellationToken cancellationToken)
+    {
+        limit = limit <= 0 ? DefaultLimit : Math.Min(limit, MaxLimit);
+        offset = Math.Max(offset, 0);
+
+        var query = _db.Documents.AsQueryable();
+
+        if (companyId is not null)
+        {
+            query = query.Where(d => d.CompanyId == companyId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(documentType) && Enum.TryParse<DocumentType>(documentType, ignoreCase: true, out var parsedType))
+        {
+            query = query.Where(d => d.DocumentType == parsedType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(d => d.FileName.Contains(search));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var page = await query
+            .OrderByDescending(d => d.UploadDate)
+            .Skip(offset)
+            .Take(limit)
+            .Select(d => new
+            {
+                d.Id,
+                d.FileName,
+                d.CompanyId,
+                CompanyName = d.Company!.Name,
+                d.DocumentType,
+                d.UploadDate,
+                d.ExtractionStatus,
+                d.ClassificationStatus
+            })
+            .ToListAsync(cancellationToken);
+
+        var items = page
+            .Select(d => new DocumentListItemDto(
+                d.Id, d.FileName, d.CompanyId, d.CompanyName, d.DocumentType.ToString(),
+                d.UploadDate, d.ExtractionStatus.ToString(), d.ClassificationStatus.ToString()))
+            .ToList();
+
+        return Ok(ApiResponse<DocumentListResponse>.Ok(new DocumentListResponse(items, totalCount, offset + items.Count < totalCount)));
+    }
+
+    /// <summary>
+    /// Reclassifica um documento já extraído do zero (Fase 7) - fecha uma
+    /// lacuna real: hoje, se o plano de contas muda depois do upload
+    /// (ex: novas Contas Padrão cadastradas), a classificação antiga nunca é
+    /// refeita automaticamente. Só reprocessa classificação, não extração -
+    /// a estrutura/hierarquia do documento não muda, só quais Contas Padrão
+    /// estão disponíveis para casar com ela. ClassificationProcessingService
+    /// já atualiza (não duplica) as classificações existentes.
+    /// </summary>
+    [HttpPost("{id:guid}/reprocess")]
+    public async Task<ActionResult<ApiResponse<ReprocessDocumentResponse>>> Reprocess(Guid id, CancellationToken cancellationToken)
+    {
+        var document = await _db.Documents.FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
+        if (document is null)
+        {
+            return NotFound(ApiResponse<object>.Fail("NOT_FOUND", "Documento não encontrado."));
+        }
+
+        if (document.ExtractionStatus != ExtractionStatus.Completed)
+        {
+            return Conflict(ApiResponse<object>.Fail(
+                "NOT_EXTRACTED", $"Documento ainda não foi extraído com sucesso (status atual: {document.ExtractionStatus})."));
+        }
+
+        _classificationQueue.Enqueue(id);
+
+        return Accepted(ApiResponse<ReprocessDocumentResponse>.Ok(
+            new ReprocessDocumentResponse(id, document.ClassificationStatus.ToString())));
     }
 
     [HttpPost("upload")]

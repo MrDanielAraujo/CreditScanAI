@@ -6,6 +6,7 @@ import { ChartOfAccountsPage } from './pages/ChartOfAccountsPage'
 import { CompaniesPage } from './pages/CompaniesPage'
 import { ConsolidationPage } from './pages/ConsolidationPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { DocumentsPage } from './pages/DocumentsPage'
 import { LearningPage } from './pages/LearningPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { ReviewPage } from './pages/ReviewPage'
@@ -18,6 +19,7 @@ export function App() {
       <Routes>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/documents/upload" element={<UploadPage />} />
+        <Route path="/documents" element={<DocumentsPage />} />
         <Route path="/review" element={<ReviewPage />} />
         <Route path="/consolidation" element={<ConsolidationPage />} />
         <Route path="/learning" element={<LearningPage />} />

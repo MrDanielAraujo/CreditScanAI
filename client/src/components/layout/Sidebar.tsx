@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom'
 const links = [
   { to: '/', label: 'Dashboard' },
   { to: '/documents/upload', label: 'Upload' },
+  { to: '/documents', label: 'Documentos' },
   { to: '/review', label: 'Revisão' },
   { to: '/consolidation', label: 'Consolidação' },
   { to: '/learning', label: 'Aprendizado' },

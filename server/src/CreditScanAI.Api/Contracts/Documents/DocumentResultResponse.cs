@@ -18,3 +18,17 @@ public sealed record SourceAccountDto(
     IReadOnlyList<AccountValueDto> Values);
 
 public sealed record AccountValueDto(Guid? PeriodId, string? RawColumnLabel, decimal? RawValue, int ScaleFactor);
+
+public sealed record DocumentListItemDto(
+    Guid Id,
+    string FileName,
+    Guid CompanyId,
+    string CompanyName,
+    string DocumentType,
+    DateTime UploadDate,
+    string ExtractionStatus,
+    string ClassificationStatus);
+
+public sealed record DocumentListResponse(List<DocumentListItemDto> Items, int TotalCount, bool HasMore);
+
+public sealed record ReprocessDocumentResponse(Guid DocumentId, string ClassificationStatus);

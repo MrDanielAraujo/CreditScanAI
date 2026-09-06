@@ -2,6 +2,8 @@ export type DocumentType = 'BalanceSheet' | 'IncomeStatement'
 
 export type ExtractionStatus = 'Pending' | 'Processing' | 'Completed' | 'Failed'
 
+export type ClassificationStatus = 'NotStarted' | 'AwaitingDefaultChartOfAccounts' | 'Processing' | 'Completed' | 'Failed'
+
 export interface Company {
   id: string
   code: string
@@ -66,4 +68,26 @@ export interface DocumentResultResponse {
   status: ExtractionStatus
   periods: PeriodDto[]
   accounts: SourceAccountDto[]
+}
+
+export interface DocumentListItem {
+  id: string
+  fileName: string
+  companyId: string
+  companyName: string
+  documentType: DocumentType
+  uploadDate: string
+  extractionStatus: ExtractionStatus
+  classificationStatus: ClassificationStatus
+}
+
+export interface DocumentListResponse {
+  items: DocumentListItem[]
+  totalCount: number
+  hasMore: boolean
+}
+
+export interface ReprocessDocumentResponse {
+  documentId: string
+  classificationStatus: ClassificationStatus
 }
