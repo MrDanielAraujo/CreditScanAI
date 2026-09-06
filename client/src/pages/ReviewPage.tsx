@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button } from '../components/common/Button'
+import { DataGrid } from '../components/common/DataGrid/DataGrid'
+import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { classificationsApi } from '../services/classificationsApi'
 import { listCompanies } from '../services/documentsApi'
 import { standardAccountsApi } from '../services/registrationsApi'
@@ -116,6 +118,24 @@ export function ReviewPage() {
     }
   }
 
+  const methodOptions = ['EXACT_MATCH', 'PATTERN_MATCH', 'AI', 'AI_UNAVAILABLE', 'HISTORICAL_DECISION', 'CROSS_COMPANY_PATTERN', 'UNKNOWN']
+  const statusOptions = ['Pending', 'NeedsReview', 'Approved', 'Rejected', 'Overridden']
+
+  const columns: DataGridColumn<PendingClassification>[] = [
+    { key: 'sourceAccountName', label: 'Conta Original' },
+    { key: 'suggestedStandardAccountName', label: 'Sugerida' },
+    {
+      key: 'confidenceScore',
+      label: 'Confiança',
+      align: 'right',
+      aggregate: 'avg',
+      getValue: (row) => row.confidenceScore * 100,
+      render: (row) => `${(row.confidenceScore * 100).toFixed(0)}%`,
+    },
+    { key: 'classificationMethod', label: 'Método', filterOptions: methodOptions },
+    ...(showAll ? [{ key: 'reviewStatus', label: 'Status', filterOptions: statusOptions } as DataGridColumn<PendingClassification>] : []),
+  ]
+
   return (
     <div>
       <h1 className="text-2xl font-semibold">Fila de Revisão</h1>
@@ -150,51 +170,18 @@ export function ReviewPage() {
 
       <div className="mt-6 flex gap-6">
         <div className="flex-1">
-          <p className="mb-2 text-sm text-neutral">{totalCount} {showAll ? 'classificação(ões)' : 'pendente(s)'}</p>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-neutral/20 bg-surface-muted text-left">
-                <th className="p-2">Conta Original</th>
-                <th className="p-2">Sugerida</th>
-                <th className="p-2">Confiança</th>
-                <th className="p-2">Método</th>
-                {showAll && <th className="p-2">Status</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {listLoading && (
-                <tr>
-                  <td className="p-2 text-neutral" colSpan={5}>
-                    Carregando...
-                  </td>
-                </tr>
-              )}
-              {!listLoading && items.length === 0 && (
-                <tr>
-                  <td className="p-2 text-neutral" colSpan={5}>
-                    {showAll ? 'Nenhuma classificação encontrada.' : 'Nenhum item pendente de revisão.'}
-                  </td>
-                </tr>
-              )}
-              {!listLoading &&
-                items.map((item) => (
-                  <tr
-                    key={item.classificationId}
-                    onClick={() => selectItem(item.classificationId)}
-                    className={[
-                      'cursor-pointer border-b border-neutral/10',
-                      item.classificationId === selectedId ? 'bg-primary/10' : 'hover:bg-neutral/10',
-                    ].join(' ')}
-                  >
-                    <td className="p-2">{item.sourceAccountName}</td>
-                    <td className="p-2 text-neutral">{item.suggestedStandardAccountName ?? '—'}</td>
-                    <td className="p-2">{(item.confidenceScore * 100).toFixed(0)}%</td>
-                    <td className="p-2 text-neutral">{item.classificationMethod}</td>
-                    {showAll && <td className="p-2 text-neutral">{item.reviewStatus}</td>}
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+          <p className="mb-2 text-sm text-neutral">
+            {totalCount} {showAll ? 'classificação(ões) no servidor' : 'pendente(s) no servidor'} (máx. 100 carregadas por vez)
+          </p>
+          <DataGrid
+            columns={columns}
+            data={items}
+            rowKey={(item) => item.classificationId}
+            loading={listLoading}
+            onRowClick={(item) => selectItem(item.classificationId)}
+            isRowSelected={(item) => item.classificationId === selectedId}
+            emptyMessage={showAll ? 'Nenhuma classificação encontrada.' : 'Nenhum item pendente de revisão.'}
+          />
         </div>
 
         <div className="w-96 shrink-0 rounded-md border border-neutral/20 p-4">

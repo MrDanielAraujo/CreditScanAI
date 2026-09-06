@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button } from '../components/common/Button'
+import { DataGrid } from '../components/common/DataGrid/DataGrid'
+import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { usersApi } from '../services/usersApi'
 import type { CreateUserRequest, UserListItem, UserRole } from '../types/users'
 
@@ -81,6 +83,71 @@ export function UsersManagementPage() {
     }
   }
 
+  const statusOptions = ['Ativo', 'Bloqueado']
+
+  const columns: DataGridColumn<UserListItem>[] = [
+    { key: 'email', label: 'Email' },
+    { key: 'name', label: 'Nome', getValue: (row) => row.name ?? '—' },
+    {
+      key: 'role',
+      label: 'Papel',
+      filterOptions: ROLES,
+      getValue: (row) => row.role,
+      render: (row) => (
+        <select
+          value={row.role}
+          onChange={(e) => handleRoleChange(row.id, e.target.value as UserRole)}
+          className="rounded-md border border-neutral/30 px-2 py-1 text-sm"
+        >
+          {ROLES.map((role) => (
+            <option key={role} value={role}>
+              {role}
+            </option>
+          ))}
+        </select>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      filterOptions: statusOptions,
+      getValue: (row) => (row.isLockedOut ? 'Bloqueado' : 'Ativo'),
+      render: (row) => <span className={row.isLockedOut ? 'text-error' : 'text-success'}>{row.isLockedOut ? 'Bloqueado' : 'Ativo'}</span>,
+    },
+    {
+      key: 'actions',
+      label: '',
+      sortable: false,
+      filterable: false,
+      groupable: false,
+      align: 'right',
+      render: (row) => (
+        <div className="flex items-center justify-end gap-3">
+          <button className="text-primary" onClick={() => setResetPasswordFor(row.id === resetPasswordFor ? null : row.id)}>
+            Redefinir senha
+          </button>
+          <button className={row.isLockedOut ? 'text-success' : 'text-error'} onClick={() => handleToggleLock(row)}>
+            {row.isLockedOut ? 'Desbloquear' : 'Revogar acesso'}
+          </button>
+          {resetPasswordFor === row.id && (
+            <div className="flex items-center gap-2">
+              <input
+                type="password"
+                placeholder="Nova senha"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="rounded-md border border-neutral/30 px-2 py-1 text-sm"
+              />
+              <Button size="small" onClick={() => handleResetPassword(row.id)} disabled={newPassword.length < 8}>
+                Confirmar
+              </Button>
+            </div>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div>
       <h1 className="text-2xl font-semibold">Gerenciamento de Usuários</h1>
@@ -129,71 +196,15 @@ export function UsersManagementPage() {
       {actionMessage && <p className="mt-3 text-sm text-success">{actionMessage}</p>}
       {actionError && <p className="mt-3 text-sm text-error">{actionError}</p>}
 
-      <table className="mt-6 w-full max-w-4xl border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-neutral/20 bg-surface-muted text-left">
-            <th className="p-2">Email</th>
-            <th className="p-2">Nome</th>
-            <th className="p-2">Papel</th>
-            <th className="p-2">Status</th>
-            <th className="p-2" />
-          </tr>
-        </thead>
-        <tbody>
-          {loading && (
-            <tr>
-              <td className="p-2 text-neutral" colSpan={5}>
-                Carregando...
-              </td>
-            </tr>
-          )}
-          {!loading &&
-            items.map((item) => (
-              <tr key={item.id} className="border-b border-neutral/10">
-                <td className="p-2">{item.email}</td>
-                <td className="p-2 text-neutral">{item.name ?? '—'}</td>
-                <td className="p-2">
-                  <select
-                    value={item.role}
-                    onChange={(e) => handleRoleChange(item.id, e.target.value as UserRole)}
-                    className="rounded-md border border-neutral/30 px-2 py-1 text-sm"
-                  >
-                    {ROLES.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className={['p-2', item.isLockedOut ? 'text-error' : 'text-success'].join(' ')}>
-                  {item.isLockedOut ? 'Bloqueado' : 'Ativo'}
-                </td>
-                <td className="p-2 text-right">
-                  <button className="mr-3 text-primary" onClick={() => setResetPasswordFor(item.id === resetPasswordFor ? null : item.id)}>
-                    Redefinir senha
-                  </button>
-                  <button className={item.isLockedOut ? 'text-success' : 'text-error'} onClick={() => handleToggleLock(item)}>
-                    {item.isLockedOut ? 'Desbloquear' : 'Revogar acesso'}
-                  </button>
-                  {resetPasswordFor === item.id && (
-                    <div className="mt-2 flex items-center justify-end gap-2">
-                      <input
-                        type="password"
-                        placeholder="Nova senha"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="rounded-md border border-neutral/30 px-2 py-1 text-sm"
-                      />
-                      <Button size="small" onClick={() => handleResetPassword(item.id)} disabled={newPassword.length < 8}>
-                        Confirmar
-                      </Button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-        </tbody>
-      </table>
+      <div className="mt-6 max-w-4xl">
+        <DataGrid
+          columns={columns}
+          data={items}
+          rowKey={(item) => item.id}
+          loading={loading}
+          emptyMessage="Nenhum usuário encontrado."
+        />
+      </div>
     </div>
   )
 }

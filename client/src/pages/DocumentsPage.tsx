@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button } from '../components/common/Button'
+import { DataGrid } from '../components/common/DataGrid/DataGrid'
+import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { listCompanies, listDocuments, reprocessDocument } from '../services/documentsApi'
 import { reportsApi } from '../services/reportsApi'
 import type { Company, DocumentListItem } from '../types/documents'
@@ -65,6 +67,22 @@ export function DocumentsPage() {
       .finally(() => setReportLoading(false))
   }
 
+  const extractionStatusOptions = ['Pending', 'Processing', 'Completed', 'Failed']
+  const classificationStatusOptions = ['NotStarted', 'AwaitingDefaultChartOfAccounts', 'Processing', 'Completed', 'Failed']
+
+  const columns: DataGridColumn<DocumentListItem>[] = [
+    { key: 'fileName', label: 'Arquivo' },
+    { key: 'companyName', label: 'Empresa' },
+    {
+      key: 'uploadDate',
+      label: 'Enviado em',
+      getValue: (row) => row.uploadDate,
+      render: (row) => formatDate(row.uploadDate),
+    },
+    { key: 'extractionStatus', label: 'Extração', filterOptions: extractionStatusOptions },
+    { key: 'classificationStatus', label: 'Classificação', filterOptions: classificationStatusOptions },
+  ]
+
   const handleReprocess = async () => {
     if (!selectedId) return
     setReprocessing(true)
@@ -113,50 +131,15 @@ export function DocumentsPage() {
       <div className="mt-6 flex gap-6">
         <div className="flex-1">
           <p className="mb-2 text-sm text-neutral">{totalCount} documento(s)</p>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-neutral/20 bg-surface-muted text-left">
-                <th className="p-2">Arquivo</th>
-                <th className="p-2">Empresa</th>
-                <th className="p-2">Enviado em</th>
-                <th className="p-2">Extração</th>
-                <th className="p-2">Classificação</th>
-              </tr>
-            </thead>
-            <tbody>
-              {listLoading && (
-                <tr>
-                  <td className="p-2 text-neutral" colSpan={5}>
-                    Carregando...
-                  </td>
-                </tr>
-              )}
-              {!listLoading && items.length === 0 && (
-                <tr>
-                  <td className="p-2 text-neutral" colSpan={5}>
-                    Nenhum documento encontrado.
-                  </td>
-                </tr>
-              )}
-              {!listLoading &&
-                items.map((item) => (
-                  <tr
-                    key={item.id}
-                    onClick={() => selectDocument(item.id)}
-                    className={[
-                      'cursor-pointer border-b border-neutral/10',
-                      item.id === selectedId ? 'bg-primary/10' : 'hover:bg-neutral/10',
-                    ].join(' ')}
-                  >
-                    <td className="p-2">{item.fileName}</td>
-                    <td className="p-2 text-neutral">{item.companyName}</td>
-                    <td className="p-2 text-neutral">{formatDate(item.uploadDate)}</td>
-                    <td className="p-2 text-neutral">{item.extractionStatus}</td>
-                    <td className="p-2 text-neutral">{item.classificationStatus}</td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+          <DataGrid
+            columns={columns}
+            data={items}
+            rowKey={(item) => item.id}
+            loading={listLoading}
+            onRowClick={(item) => selectDocument(item.id)}
+            isRowSelected={(item) => item.id === selectedId}
+            emptyMessage="Nenhum documento encontrado."
+          />
         </div>
 
         <div className="w-96 shrink-0 rounded-md border border-neutral/20 p-4">
