@@ -8,10 +8,11 @@ public interface IAccountClassifier
 {
     /// <summary>
     /// Classifica uma conta de origem combinando, em ordem: histórico de
-    /// decisões humanas da mesma empresa, regras determinísticas, e IA local
-    /// como camada de reforço. Nunca lança por falha da IA - se o Ollama
-    /// estiver indisponível, cai de volta na sugestão da regra (se houver)
-    /// com o método "AI_UNAVAILABLE".
+    /// decisões humanas da mesma empresa, padrões aprendidos em outras
+    /// empresas do mesmo tenant, regras determinísticas, e IA local como
+    /// camada de reforço. Nunca lança por falha da IA - se o Ollama estiver
+    /// indisponível, cai de volta na sugestão da regra (se houver) com o
+    /// método "AI_UNAVAILABLE".
     /// </summary>
     Task<ClassificationResult> ClassifyAsync(
         ClassificationContext context,
@@ -26,20 +27,29 @@ public sealed class AccountClassifier : IAccountClassifier
     // 0.85, sempre passa pela IA como segunda opinião).
     private const float RuleHighConfidenceThreshold = 0.90f;
 
+    // Confiança de um padrão aprendido entre empresas (Camada 4.5) - mais
+    // confiável que uma regra genérica (várias empresas já confirmaram),
+    // mas menos que o histórico da própria empresa (Camada 4), que é o caso
+    // mais forte possível.
+    private const float CrossCompanyPatternConfidence = 0.85f;
+
     private readonly IRuleOrchestrator _ruleOrchestrator;
     private readonly IAiClassificationService _aiService;
     private readonly IClassificationHistoryProvider _historyProvider;
+    private readonly ICrossCompanyPatternProvider _crossCompanyPatternProvider;
     private readonly ILogger<AccountClassifier> _logger;
 
     public AccountClassifier(
         IRuleOrchestrator ruleOrchestrator,
         IAiClassificationService aiService,
         IClassificationHistoryProvider historyProvider,
+        ICrossCompanyPatternProvider crossCompanyPatternProvider,
         ILogger<AccountClassifier> logger)
     {
         _ruleOrchestrator = ruleOrchestrator;
         _aiService = aiService;
         _historyProvider = historyProvider;
+        _crossCompanyPatternProvider = crossCompanyPatternProvider;
         _logger = logger;
     }
 
@@ -62,6 +72,24 @@ public sealed class AccountClassifier : IAccountClassifier
                 0.98f,
                 "HISTORICAL_DECISION",
                 $"Empresa já classificou '{context.SourceAccountName}' como '{historical.StandardAccountName}' anteriormente ({historical.DecidedAt:d})");
+        }
+
+        // Camada 4.5 (Aprendizado entre empresas): sem histórico próprio,
+        // mas se outras empresas do mesmo tenant já convergiram numa
+        // classificação para este mesmo nome de conta, isso é uma sugestão
+        // melhor que uma regra genérica - especialmente valioso para uma
+        // empresa nova, sem histórico algum ainda.
+        var crossCompanyPattern = await _crossCompanyPatternProvider.FindPatternAsync(
+            context.TenantId, context.CompanyId, context.NormalizedName, cancellationToken);
+
+        if (crossCompanyPattern is not null)
+        {
+            return new ClassificationResult(
+                crossCompanyPattern.StandardAccountId,
+                CrossCompanyPatternConfidence,
+                "CROSS_COMPANY_PATTERN",
+                $"{crossCompanyPattern.CompanyCount} empresas já classificaram '{context.SourceAccountName}' como " +
+                $"'{crossCompanyPattern.StandardAccountName}' ({crossCompanyPattern.Consistency:P0} de consistência)");
         }
 
         var ruleResult = _ruleOrchestrator.Classify(context, candidates);

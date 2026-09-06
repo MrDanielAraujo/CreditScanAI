@@ -5,6 +5,7 @@ const links = [
   { to: '/documents/upload', label: 'Upload' },
   { to: '/review', label: 'Revisão' },
   { to: '/consolidation', label: 'Consolidação' },
+  { to: '/learning', label: 'Aprendizado' },
 ]
 
 const registrationLinks = [

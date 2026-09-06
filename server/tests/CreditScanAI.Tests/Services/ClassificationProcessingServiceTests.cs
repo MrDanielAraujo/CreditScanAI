@@ -168,12 +168,20 @@ public class ClassificationProcessingServiceTests
             => Task.FromResult<HistoricalClassification?>(null);
     }
 
+    /// <summary>Nunca encontra padrão entre empresas - estes testes não cobrem a Camada 4.5 (ver AccountClassifierTests).</summary>
+    private sealed class NoCrossCompanyPatternProvider : ICrossCompanyPatternProvider
+    {
+        public Task<CrossCompanyPattern?> FindPatternAsync(Guid tenantId, Guid excludeCompanyId, string normalizedSourceAccountName, CancellationToken cancellationToken)
+            => Task.FromResult<CrossCompanyPattern?>(null);
+    }
+
     private static ClassificationProcessingService BuildService(AppDbContext db, IAiClassificationService aiService) => new(
         db,
         new AccountClassifier(
             new RuleOrchestrator([new ExactMatchRule(new AccountNameNormalizer()), new PatternMatchRule(new AccountNameNormalizer())]),
             aiService,
             new NoHistoryProvider(),
+            new NoCrossCompanyPatternProvider(),
             NullLogger<AccountClassifier>.Instance),
         new AccountNameNormalizer(),
         NullLogger<ClassificationProcessingService>.Instance);

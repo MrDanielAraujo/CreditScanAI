@@ -100,7 +100,8 @@ public class ClassificationProcessingService
                     sourceAccount.InferredType,
                     sourceAccount.InferredSubtype,
                     document.CompanyId,
-                    document.Id);
+                    document.Id,
+                    document.TenantId);
 
                 var result = await _classifier.ClassifyAsync(context, candidates, cancellationToken);
                 var reviewStatus = DetermineReviewStatus(result);

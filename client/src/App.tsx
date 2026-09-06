@@ -6,6 +6,7 @@ import { ChartOfAccountsPage } from './pages/ChartOfAccountsPage'
 import { CompaniesPage } from './pages/CompaniesPage'
 import { ConsolidationPage } from './pages/ConsolidationPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { LearningPage } from './pages/LearningPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { ReviewPage } from './pages/ReviewPage'
 import { StandardAccountsPage } from './pages/StandardAccountsPage'
@@ -19,6 +20,7 @@ export function App() {
         <Route path="/documents/upload" element={<UploadPage />} />
         <Route path="/review" element={<ReviewPage />} />
         <Route path="/consolidation" element={<ConsolidationPage />} />
+        <Route path="/learning" element={<LearningPage />} />
         <Route path="/registrations/companies" element={<CompaniesPage />} />
         <Route path="/registrations/account-types" element={<AccountTypesPage />} />
         <Route path="/registrations/account-subtypes" element={<AccountSubtypesPage />} />

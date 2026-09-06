@@ -8,6 +8,7 @@ export interface PendingClassification {
   confidenceScore: number
   classificationMethod: string
   evidence: string | null
+  reviewStatus: ClassificationReviewStatus
 }
 
 export interface PendingClassificationsResponse {

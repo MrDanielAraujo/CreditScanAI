@@ -44,6 +44,7 @@ builder.Services.AddScoped<ConsolidationService>();
 
 builder.Services.AddClassificationEngine(builder.Configuration);
 builder.Services.AddScoped<IClassificationHistoryProvider, EfClassificationHistoryProvider>();
+builder.Services.AddScoped<ICrossCompanyPatternProvider, EfCrossCompanyPatternProvider>();
 builder.Services.AddSingleton<IClassificationProcessingQueue, ClassificationProcessingQueue>();
 builder.Services.AddScoped<ClassificationProcessingService>();
 builder.Services.AddHostedService<ClassificationProcessingBackgroundService>();

@@ -16,6 +16,7 @@ namespace CreditScanAI.Tests.Classification;
 /// </summary>
 public class AccountClassifierTests
 {
+    private static readonly Guid TenantId = Guid.NewGuid();
     private static readonly Guid CompanyId = Guid.NewGuid();
     private static readonly Guid DocumentId = Guid.NewGuid();
 
@@ -23,7 +24,7 @@ public class AccountClassifierTests
         new(Guid.NewGuid(), "CAIXA", "Caixa e Equivalentes de Caixa", null);
 
     private static ClassificationContext ContextFor(string sourceName, string normalizedName, string? type = "ATIVO", string? subtype = "CIRCULANTE") =>
-        new(sourceName, normalizedName, type, subtype, CompanyId, DocumentId);
+        new(sourceName, normalizedName, type, subtype, CompanyId, DocumentId, TenantId);
 
     private sealed class StubAiClassificationService : IAiClassificationService
     {
@@ -56,10 +57,30 @@ public class AccountClassifierTests
             => Task.FromResult<HistoricalClassification?>(_result);
     }
 
-    private static AccountClassifier BuildClassifier(IAiClassificationService aiService, IClassificationHistoryProvider? historyProvider = null) => new(
+    /// <summary>Nunca encontra padrão entre empresas - usado pela maioria dos testes, que não são sobre a Camada 4.5.</summary>
+    private sealed class NoCrossCompanyPatternProvider : ICrossCompanyPatternProvider
+    {
+        public Task<CrossCompanyPattern?> FindPatternAsync(Guid tenantId, Guid excludeCompanyId, string normalizedSourceAccountName, CancellationToken cancellationToken)
+            => Task.FromResult<CrossCompanyPattern?>(null);
+    }
+
+    private sealed class StubCrossCompanyPatternProvider : ICrossCompanyPatternProvider
+    {
+        private readonly CrossCompanyPattern _result;
+        public StubCrossCompanyPatternProvider(CrossCompanyPattern result) => _result = result;
+
+        public Task<CrossCompanyPattern?> FindPatternAsync(Guid tenantId, Guid excludeCompanyId, string normalizedSourceAccountName, CancellationToken cancellationToken)
+            => Task.FromResult<CrossCompanyPattern?>(_result);
+    }
+
+    private static AccountClassifier BuildClassifier(
+        IAiClassificationService aiService,
+        IClassificationHistoryProvider? historyProvider = null,
+        ICrossCompanyPatternProvider? crossCompanyPatternProvider = null) => new(
         new RuleOrchestrator([new ExactMatchRule(new AccountNameNormalizer()), new PatternMatchRule(new AccountNameNormalizer())]),
         aiService,
         historyProvider ?? new NoHistoryProvider(),
+        crossCompanyPatternProvider ?? new NoCrossCompanyPatternProvider(),
         NullLogger<AccountClassifier>.Instance);
 
     [Fact]
@@ -74,6 +95,38 @@ public class AccountClassifierTests
         result.Method.Should().Be("HISTORICAL_DECISION");
         result.StandardAccountId.Should().Be(CaixaCandidate.Id);
         result.Confidence.Should().Be(0.98f);
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_NoHistoryButCrossCompanyPatternExists_UsesItWithoutTouchingRulesOrAi()
+    {
+        var pattern = new CrossCompanyPattern(CaixaCandidate.Id, CaixaCandidate.Name, CompanyCount: 3, Consistency: 1.0f);
+        var classifier = BuildClassifier(new ThrowingAiClassificationService(), crossCompanyPatternProvider: new StubCrossCompanyPatternProvider(pattern));
+        var context = ContextFor("Caixa e bancos", "CAIXA E BANCOS");
+
+        var result = await classifier.ClassifyAsync(context, [CaixaCandidate], CancellationToken.None);
+
+        result.Method.Should().Be("CROSS_COMPANY_PATTERN");
+        result.StandardAccountId.Should().Be(CaixaCandidate.Id);
+        result.Confidence.Should().Be(0.85f);
+    }
+
+    [Fact]
+    public async Task ClassifyAsync_SameCompanyHistoryTakesPriorityOverCrossCompanyPattern()
+    {
+        var otherAccount = new StandardAccountCandidate(Guid.NewGuid(), "OUTRA", "Outra Conta", null);
+        var historical = new HistoricalClassification(CaixaCandidate.Id, CaixaCandidate.Name, DateTime.UtcNow.AddDays(-1));
+        var pattern = new CrossCompanyPattern(otherAccount.Id, otherAccount.Name, CompanyCount: 3, Consistency: 1.0f);
+        var classifier = BuildClassifier(
+            new ThrowingAiClassificationService(),
+            historyProvider: new StubHistoryProvider(historical),
+            crossCompanyPatternProvider: new StubCrossCompanyPatternProvider(pattern));
+        var context = ContextFor("Caixa e bancos", "CAIXA E BANCOS");
+
+        var result = await classifier.ClassifyAsync(context, [CaixaCandidate, otherAccount], CancellationToken.None);
+
+        result.Method.Should().Be("HISTORICAL_DECISION");
+        result.StandardAccountId.Should().Be(CaixaCandidate.Id);
     }
 
     [Fact]

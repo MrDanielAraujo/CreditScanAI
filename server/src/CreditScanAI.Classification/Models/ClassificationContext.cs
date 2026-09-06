@@ -11,7 +11,8 @@ public sealed record ClassificationContext(
     string? InferredType,
     string? InferredSubtype,
     Guid CompanyId,
-    Guid DocumentId);
+    Guid DocumentId,
+    Guid TenantId);
 
 /// <summary>One StandardAccount eligible to be the classification target.</summary>
 public sealed record StandardAccountCandidate(Guid Id, string Code, string Name, string? Description);

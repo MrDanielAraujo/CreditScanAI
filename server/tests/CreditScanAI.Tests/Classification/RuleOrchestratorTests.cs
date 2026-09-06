@@ -31,7 +31,7 @@ public class RuleOrchestratorTests
     // Regras não usam CompanyId/DocumentId (só a camada de Histórico usa) -
     // valores arbitrários bastam aqui.
     private ClassificationContext ContextFor(string sourceName) =>
-        new(sourceName, _normalizer.Normalize(sourceName), "ATIVO", "CIRCULANTE", Guid.NewGuid(), Guid.NewGuid());
+        new(sourceName, _normalizer.Normalize(sourceName), "ATIVO", "CIRCULANTE", Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
 
     [Fact]
     public void Classify_NoCandidates_ReturnsUnknown()

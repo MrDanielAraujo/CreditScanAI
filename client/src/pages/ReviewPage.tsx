@@ -10,6 +10,7 @@ import type { StandardAccount } from '../types/registrations'
 export function ReviewPage() {
   const [companies, setCompanies] = useState<Company[]>([])
   const [companyId, setCompanyId] = useState('')
+  const [showAll, setShowAll] = useState(false)
 
   const [items, setItems] = useState<PendingClassification[]>([])
   const [totalCount, setTotalCount] = useState(0)
@@ -30,7 +31,7 @@ export function ReviewPage() {
     setListLoading(true)
     setListError(null)
     classificationsApi
-      .listPending({ companyId: companyId || undefined, limit: 100 })
+      .listPending({ companyId: companyId || undefined, status: showAll ? 'all' : 'needs_review', limit: 100 })
       .then((res) => {
         setItems(res.items)
         setTotalCount(res.totalCount)
@@ -45,7 +46,7 @@ export function ReviewPage() {
       .catch(() => setCompanies([]))
   }, [])
 
-  useEffect(loadPending, [companyId])
+  useEffect(loadPending, [companyId, showAll])
 
   const selectItem = (classificationId: string) => {
     setSelectedId(classificationId)
@@ -119,14 +120,17 @@ export function ReviewPage() {
     <div>
       <h1 className="text-2xl font-semibold">Fila de Revisão</h1>
       <p className="mt-2 text-neutral">
-        Contas classificadas com baixa confiança, ou sem nenhuma correspondência. Selecione um item para aprovar, corrigir ou rejeitar.
+        {showAll
+          ? 'Todas as classificações, incluindo as já auto-aprovadas com confiança alta - confirme ou corrija qualquer uma.'
+          : 'Contas classificadas com baixa confiança, ou sem nenhuma correspondência.'}{' '}
+        Selecione um item para aprovar, corrigir ou rejeitar.
       </p>
 
-      <div className="mt-4 max-w-xs">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         <select
           value={companyId}
           onChange={(e) => setCompanyId(e.target.value)}
-          className="w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+          className="w-full max-w-xs rounded-md border border-neutral/30 px-3 py-2 text-sm"
         >
           <option value="">Todas as empresas</option>
           {companies.map((c) => (
@@ -135,13 +139,18 @@ export function ReviewPage() {
             </option>
           ))}
         </select>
+
+        <label className="flex items-center gap-2 text-sm text-neutral">
+          <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
+          Mostrar todas as classificações (não só as pendentes de revisão)
+        </label>
       </div>
 
       {listError && <p className="mt-3 text-sm text-error">{listError}</p>}
 
       <div className="mt-6 flex gap-6">
         <div className="flex-1">
-          <p className="mb-2 text-sm text-neutral">{totalCount} pendente(s)</p>
+          <p className="mb-2 text-sm text-neutral">{totalCount} {showAll ? 'classificação(ões)' : 'pendente(s)'}</p>
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-neutral/20 bg-surface-muted text-left">
@@ -149,20 +158,21 @@ export function ReviewPage() {
                 <th className="p-2">Sugerida</th>
                 <th className="p-2">Confiança</th>
                 <th className="p-2">Método</th>
+                {showAll && <th className="p-2">Status</th>}
               </tr>
             </thead>
             <tbody>
               {listLoading && (
                 <tr>
-                  <td className="p-2 text-neutral" colSpan={4}>
+                  <td className="p-2 text-neutral" colSpan={5}>
                     Carregando...
                   </td>
                 </tr>
               )}
               {!listLoading && items.length === 0 && (
                 <tr>
-                  <td className="p-2 text-neutral" colSpan={4}>
-                    Nenhum item pendente de revisão.
+                  <td className="p-2 text-neutral" colSpan={5}>
+                    {showAll ? 'Nenhuma classificação encontrada.' : 'Nenhum item pendente de revisão.'}
                   </td>
                 </tr>
               )}
@@ -180,6 +190,7 @@ export function ReviewPage() {
                     <td className="p-2 text-neutral">{item.suggestedStandardAccountName ?? '—'}</td>
                     <td className="p-2">{(item.confidenceScore * 100).toFixed(0)}%</td>
                     <td className="p-2 text-neutral">{item.classificationMethod}</td>
+                    {showAll && <td className="p-2 text-neutral">{item.reviewStatus}</td>}
                   </tr>
                 ))}
             </tbody>

@@ -24,10 +24,18 @@ public class ClassificationsController : ControllerBase
 
     public ClassificationsController(AppDbContext db) => _db = db;
 
+    /// <summary>
+    /// Lista classificações para revisão. Por padrão (sem "status", ou
+    /// "status=needs_review") só traz NeedsReview - a fila de revisão
+    /// clássica da Fase 3. "status=all" traz qualquer status (Fase 6 Parte 2:
+    /// fechar o ciclo de feedback também para classificações já
+    /// auto-aprovadas com confiança alta, que hoje ficam invisíveis na UI).
+    /// </summary>
     [HttpGet("pending")]
     public async Task<ActionResult<ApiResponse<PendingClassificationsResponse>>> GetPending(
         [FromQuery] Guid? documentId,
         [FromQuery] Guid? companyId,
+        [FromQuery] string? status,
         [FromQuery] int limit,
         [FromQuery] int offset,
         CancellationToken cancellationToken)
@@ -35,8 +43,9 @@ public class ClassificationsController : ControllerBase
         limit = limit <= 0 ? DefaultLimit : Math.Min(limit, MaxLimit);
         offset = Math.Max(offset, 0);
 
-        var query = _db.AccountClassifications
-            .Where(c => c.ReviewStatus == ClassificationReviewStatus.NeedsReview);
+        var query = string.Equals(status, "all", StringComparison.OrdinalIgnoreCase)
+            ? _db.AccountClassifications.AsQueryable()
+            : _db.AccountClassifications.Where(c => c.ReviewStatus == ClassificationReviewStatus.NeedsReview);
 
         if (documentId is not null)
         {
@@ -68,6 +77,7 @@ public class ClassificationsController : ControllerBase
                 c.ConfidenceScore,
                 c.ClassificationMethod,
                 c.Evidence,
+                c.ReviewStatus,
                 DocumentId = c.SourceAccount!.DocumentId,
                 SourceAccountName = c.SourceAccount!.OriginalName,
                 SuggestedStandardAccountName = c.StandardAccount != null ? c.StandardAccount.Name : null
@@ -76,7 +86,8 @@ public class ClassificationsController : ControllerBase
 
         var items = page
             .Select(p => new PendingClassificationDto(
-                p.Id, p.DocumentId, p.SourceAccountName, p.SuggestedStandardAccountName, p.ConfidenceScore, p.ClassificationMethod, p.Evidence))
+                p.Id, p.DocumentId, p.SourceAccountName, p.SuggestedStandardAccountName, p.ConfidenceScore,
+                p.ClassificationMethod, p.Evidence, p.ReviewStatus.ToString()))
             .ToList();
 
         return Ok(ApiResponse<PendingClassificationsResponse>.Ok(

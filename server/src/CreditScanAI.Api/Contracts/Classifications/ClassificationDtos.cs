@@ -7,7 +7,8 @@ public sealed record PendingClassificationDto(
     string? SuggestedStandardAccountName,
     decimal ConfidenceScore,
     string ClassificationMethod,
-    string? Evidence);
+    string? Evidence,
+    string ReviewStatus);
 
 public sealed record PendingClassificationsResponse(List<PendingClassificationDto> Items, int TotalCount, bool HasMore);
 

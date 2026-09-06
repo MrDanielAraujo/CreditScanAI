@@ -106,6 +106,55 @@ public class ClassificationsControllerTests : IClassFixture<DocumentsApiWebAppli
     }
 
     [Fact]
+    public async Task GetPending_ExposesReviewStatusOnEachItem()
+    {
+        var (tenantId, _, chartId, documentId) = await SeedTenantCompanyDocumentAsync();
+        var (_, _, classificationId) = await SeedNeedsReviewClassificationAsync(tenantId, documentId, chartId, "Conta Com Status");
+
+        var response = await _client.GetFromJsonAsync<ApiResponse<PendingClassificationsResponse>>(
+            $"/api/classifications/pending?documentId={documentId}");
+
+        response!.Data!.Items.Should().ContainSingle(i => i.ClassificationId == classificationId)
+            .Which.ReviewStatus.Should().Be("NeedsReview");
+    }
+
+    [Fact]
+    public async Task GetPending_DefaultStatus_ExcludesAlreadyPendingClassification()
+    {
+        // Fase 6 Parte 2: por padrão a fila continua só mostrando NeedsReview -
+        // uma classificação Pending (auto-aprovada com confiança alta) não
+        // deve poluir a fila de revisão clássica.
+        var (tenantId, _, chartId, documentId) = await SeedTenantCompanyDocumentAsync();
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var sourceAccount = new SourceAccount
+        {
+            Id = Guid.NewGuid(), TenantId = tenantId, DocumentId = documentId,
+            OriginalName = "Conta Já Classificada", NormalizedName = "CONTA JA CLASSIFICADA",
+            HierarchyLevel = 1, CreatedAt = DateTime.UtcNow
+        };
+        db.SourceAccounts.Add(sourceAccount);
+        var classification = new AccountClassification
+        {
+            Id = Guid.NewGuid(), TenantId = tenantId, SourceAccountId = sourceAccount.Id,
+            StandardAccountId = null, ChartOfAccountsId = chartId,
+            ConfidenceScore = 0.95m, ClassificationMethod = "AI",
+            ReviewStatus = ClassificationReviewStatus.Pending,
+            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+        };
+        db.AccountClassifications.Add(classification);
+        await db.SaveChangesAsync();
+
+        var defaultResponse = await _client.GetFromJsonAsync<ApiResponse<PendingClassificationsResponse>>(
+            $"/api/classifications/pending?documentId={documentId}");
+        defaultResponse!.Data!.Items.Should().NotContain(i => i.ClassificationId == classification.Id);
+
+        var allResponse = await _client.GetFromJsonAsync<ApiResponse<PendingClassificationsResponse>>(
+            $"/api/classifications/pending?documentId={documentId}&status=all");
+        allResponse!.Data!.Items.Should().Contain(i => i.ClassificationId == classification.Id && i.ReviewStatus == "Pending");
+    }
+
+    [Fact]
     public async Task GetById_ReturnsFullDetailWithSuggestedStandardAccount()
     {
         var (tenantId, _, chartId, documentId) = await SeedTenantCompanyDocumentAsync();
