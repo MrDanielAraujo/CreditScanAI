@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button } from '../components/common/Button'
+import { DataGrid } from '../components/common/DataGrid/DataGrid'
+import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { accountTypesApi } from '../services/registrationsApi'
 import type { AccountType, UpsertAccountTypeRequest } from '../types/registrations'
 
@@ -55,6 +57,30 @@ export function AccountTypesPage() {
     }
   }
 
+  const columns: DataGridColumn<AccountType>[] = [
+    { key: 'code', label: 'Código' },
+    { key: 'name', label: 'Nome' },
+    { key: 'sequenceOrder', label: 'Ordem', align: 'right', getValue: (row) => row.sequenceOrder ?? '-' },
+    {
+      key: 'actions',
+      label: '',
+      sortable: false,
+      filterable: false,
+      groupable: false,
+      align: 'right',
+      render: (row) => (
+        <>
+          <button className="mr-3 text-primary" onClick={() => handleEdit(row)}>
+            Editar
+          </button>
+          <button className="text-error" onClick={() => handleDelete(row.id)}>
+            Excluir
+          </button>
+        </>
+      ),
+    },
+  ]
+
   return (
     <div>
       <h1 className="text-2xl font-semibold">Tipos de Conta</h1>
@@ -106,41 +132,9 @@ export function AccountTypesPage() {
 
       {error && <p className="mt-3 text-sm text-error">{error}</p>}
 
-      <table className="mt-6 w-full max-w-2xl border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-neutral/20 bg-surface-muted text-left">
-            <th className="p-2">Código</th>
-            <th className="p-2">Nome</th>
-            <th className="p-2">Ordem</th>
-            <th className="p-2" />
-          </tr>
-        </thead>
-        <tbody>
-          {loading && (
-            <tr>
-              <td className="p-2 text-neutral" colSpan={4}>
-                Carregando...
-              </td>
-            </tr>
-          )}
-          {!loading &&
-            items.map((item) => (
-              <tr key={item.id} className="border-b border-neutral/10">
-                <td className="p-2">{item.code}</td>
-                <td className="p-2">{item.name}</td>
-                <td className="p-2">{item.sequenceOrder ?? '-'}</td>
-                <td className="p-2 text-right">
-                  <button className="mr-3 text-primary" onClick={() => handleEdit(item)}>
-                    Editar
-                  </button>
-                  <button className="text-error" onClick={() => handleDelete(item.id)}>
-                    Excluir
-                  </button>
-                </td>
-              </tr>
-            ))}
-        </tbody>
-      </table>
+      <div className="mt-6 max-w-2xl">
+        <DataGrid columns={columns} data={items} rowKey={(item) => item.id} loading={loading} emptyMessage="Nenhum tipo cadastrado." />
+      </div>
     </div>
   )
 }
