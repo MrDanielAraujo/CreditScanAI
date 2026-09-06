@@ -32,12 +32,16 @@ export interface DataGridGroup<T> {
   aggregates: Record<string, string>
 }
 
+export const DEFAULT_COLUMN_WIDTH = 160
+
 export function useDataGridState<T>(columns: DataGridColumn<T>[], data: T[], rowKey: (row: T) => string, pageSize: number) {
   const [sort, setSort] = useState<{ key: string; direction: SortDirection } | null>(null)
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [page, setPage] = useState(1)
   const [columnOrder, setColumnOrder] = useState<string[]>(() => columns.map((c) => c.key))
-  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() =>
+    Object.fromEntries(columns.map((c) => [c.key, c.width ?? DEFAULT_COLUMN_WIDTH])),
+  )
   const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(new Set())
   const [groupByKey, setGroupByKey] = useState<string | null>(null)
 

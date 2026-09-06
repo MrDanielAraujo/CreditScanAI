@@ -97,4 +97,40 @@ describe('DataGrid', () => {
 
     expect(handleRowClick).toHaveBeenCalledWith(rows[0])
   })
+
+  it('renders a frozen column for every row, independent from row clicks', async () => {
+    const handleRowClick = vi.fn()
+    const handleDelete = vi.fn()
+    const columnsWithFrozenActions: DataGridColumn<Row>[] = [
+      ...columns,
+      {
+        key: 'actions',
+        label: '',
+        frozen: true,
+        sortable: false,
+        filterable: false,
+        groupable: false,
+        render: (row) => (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handleDelete(row.id)
+            }}
+          >
+            Excluir
+          </button>
+        ),
+      },
+    ]
+
+    render(<DataGrid columns={columnsWithFrozenActions} data={rows} rowKey={(r) => r.id} onRowClick={handleRowClick} />)
+
+    const deleteButtons = screen.getAllByRole('button', { name: 'Excluir' })
+    expect(deleteButtons).toHaveLength(rows.length)
+
+    await userEvent.click(deleteButtons[0])
+
+    expect(handleDelete).toHaveBeenCalledWith(rows[0].id)
+    expect(handleRowClick).not.toHaveBeenCalled()
+  })
 })

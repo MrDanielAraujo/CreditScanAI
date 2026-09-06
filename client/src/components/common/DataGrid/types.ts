@@ -19,6 +19,8 @@ export interface DataGridColumn<T> {
   groupable?: boolean
   aggregate?: AggregateType
   align?: 'left' | 'right' | 'center'
+  /** Congela a coluna num painel à esquerda que não rola horizontalmente. Não é arrastável/reordenável. */
+  frozen?: boolean
 }
 
 export interface DataGridProps<T> {
