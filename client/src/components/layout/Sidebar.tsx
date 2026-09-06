@@ -49,6 +49,13 @@ export function Sidebar() {
             </NavLink>
           </li>
         )}
+        {user?.role === 'Admin' && (
+          <li>
+            <NavLink to="/admin/users" className={linkClassName}>
+              Usuários
+            </NavLink>
+          </li>
+        )}
       </ul>
 
       <p className="mt-4 mb-1 px-3 text-xs font-semibold uppercase text-neutral">Cadastros</p>

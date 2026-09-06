@@ -19,6 +19,7 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { ReviewPage } from './pages/ReviewPage'
 import { StandardAccountsPage } from './pages/StandardAccountsPage'
 import { UploadPage } from './pages/UploadPage'
+import { UsersManagementPage } from './pages/UsersManagementPage'
 
 function AppRoutes() {
   return (
@@ -30,6 +31,7 @@ function AppRoutes() {
       <Route path="/consolidation" element={<ConsolidationPage />} />
       <Route path="/learning" element={<LearningPage />} />
       <Route path="/audit/logins" element={<LoginAuditPage />} />
+      <Route path="/admin/users" element={<UsersManagementPage />} />
       <Route path="/registrations/companies" element={<CompaniesPage />} />
       <Route path="/registrations/account-types" element={<AccountTypesPage />} />
       <Route path="/registrations/account-subtypes" element={<AccountSubtypesPage />} />

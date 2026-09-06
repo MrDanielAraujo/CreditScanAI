@@ -23,6 +23,7 @@ public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions
     public const string SchemeName = "Test";
     public const string RoleHeader = "X-Test-Role";
     public const string TenantHeader = "X-Test-Tenant-Id";
+    public const string UserIdHeader = "X-Test-User-Id";
 
     private readonly AppDbContext _db;
 
@@ -51,9 +52,11 @@ public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions
             tenantId = await _db.Tenants.OrderBy(t => t.CreatedAt).Select(t => t.Id).FirstOrDefaultAsync();
         }
 
+        var userId = Request.Headers[UserIdHeader].FirstOrDefault() ?? Guid.NewGuid().ToString();
+
         List<Claim> claims =
         [
-            new(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+            new(ClaimTypes.NameIdentifier, userId),
             new(JwtClaimNames.TenantId, tenantId.ToString()),
             new(ClaimTypes.Role, role)
         ];
