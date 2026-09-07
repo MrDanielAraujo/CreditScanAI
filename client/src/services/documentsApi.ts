@@ -1,5 +1,5 @@
 import { apiGet, apiPost, API_BASE_URL } from './apiClient'
-import { getStoredToken } from './authStorage'
+import { getStoredToken, handleUnauthorized } from './authStorage'
 import type {
   Company,
   DocumentListResponse,
@@ -29,6 +29,9 @@ export async function uploadDocument(file: File, cnpj: string): Promise<UploadDo
 
   const body: ApiResponse<UploadDocumentResponse> = await response.json()
   if (!response.ok || !body.success) {
+    if (response.status === 401 && body.error?.code === 'UNAUTHORIZED') {
+      handleUnauthorized()
+    }
     throw new Error(body.error?.message ?? `HTTP ${response.status}`)
   }
   return body.data as UploadDocumentResponse

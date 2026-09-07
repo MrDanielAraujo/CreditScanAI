@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { authApi } from '../services/authApi'
-import { clearStoredToken, getStoredToken, setStoredToken } from '../services/authStorage'
+import { AUTH_UNAUTHORIZED_EVENT, clearStoredToken, getStoredToken, setStoredToken } from '../services/authStorage'
 import type { LoginRequest, RegisterRequest, UserSummary } from '../types/auth'
 import { AuthContext } from './authContextValue'
 
@@ -18,6 +18,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(setUser)
       .catch(() => clearStoredToken())
       .finally(() => setLoading(false))
+  }, [])
+
+  // Uma chamada autenticada em qualquer lugar do app pode voltar 401 (token
+  // expirado/inválido) muito depois do carregamento inicial - o apiClient
+  // já limpou o token e avisa aqui pra derrubar o usuário, o que faz o
+  // ProtectedRoute redirecionar pro login sozinho.
+  useEffect(() => {
+    const handleSessionExpired = () => setUser(null)
+    window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleSessionExpired)
+    return () => window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleSessionExpired)
   }, [])
 
   const login = useCallback(async (req: LoginRequest) => {

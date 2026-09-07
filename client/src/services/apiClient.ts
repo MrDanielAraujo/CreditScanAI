@@ -1,12 +1,24 @@
 import type { ApiResponse } from '../types/api'
-import { getStoredToken } from './authStorage'
+import { getStoredToken, handleUnauthorized } from './authStorage'
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5080'
+
+/**
+ * Código só usado pelo desafio do JWT bearer quando o token está ausente,
+ * expirado ou inválido (ver Program.cs, JwtBearerEvents.OnChallenge) - nunca
+ * pra senha errada no login (INVALID_CREDENTIALS) nem pra 403 de permissão
+ * insuficiente (FORBIDDEN), então é seguro tratar só esse código como "a
+ * sessão não vale mais, desloga".
+ */
+const SESSION_INVALID_CODE = 'UNAUTHORIZED'
 
 async function unwrap<T>(response: Response): Promise<T> {
   const body: ApiResponse<T> = await response.json()
 
   if (!response.ok || !body.success) {
+    if (response.status === 401 && body.error?.code === SESSION_INVALID_CODE) {
+      handleUnauthorized()
+    }
     throw new Error(body.error?.message ?? `HTTP ${response.status}`)
   }
 
@@ -57,6 +69,9 @@ export async function apiDownload(path: string, fallbackFilename: string): Promi
 
   if (!response.ok) {
     const body: ApiResponse<unknown> = await response.json()
+    if (response.status === 401 && body.error?.code === SESSION_INVALID_CODE) {
+      handleUnauthorized()
+    }
     throw new Error(body.error?.message ?? `HTTP ${response.status}`)
   }
 
