@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Button } from '../components/common/Button'
+import { ScaleIcon, TrendingUpIcon } from '../components/common/icons'
 import { LayersIcon } from '../components/common/navIcons'
+import { EquationBanner } from '../components/financial/EquationBanner'
+import { ExportButtons } from '../components/financial/ExportButtons'
 import { FinancialValueGrid } from '../components/financial/FinancialValueGrid'
-import { BALANCO_VALUES, DRE_VALUES, formatFinancialValue, INDICADORES } from '../components/financial/financialValueDefinitions'
+import { BALANCO_VALUES, DRE_VALUES, INDICADORES } from '../components/financial/financialValueDefinitions'
 import { companiesApi } from '../services/companiesApi'
 import { consolidationApi } from '../services/consolidationApi'
 import { listCompanies } from '../services/documentsApi'
@@ -88,38 +91,40 @@ export function ConsolidationPage() {
         calculada antes.
       </p>
 
-      <div className="mt-4 flex flex-wrap gap-8">
-        <div>
-          <label className="block text-xs font-semibold uppercase text-neutral">Empresas</label>
-          <div className="mt-1 flex flex-col gap-1">
-            {companies.map((c) => (
-              <label key={c.id} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={selectedCompanyIds.includes(c.id)} onChange={() => toggleCompany(c.id)} />
-                {c.name}
-              </label>
-            ))}
+      <div className="mt-4 rounded-lg border border-neutral/15 bg-surface p-4 shadow-sm">
+        <div className="flex flex-wrap gap-8">
+          <div>
+            <label className="block text-xs font-semibold uppercase text-neutral">Empresas</label>
+            <div className="mt-1 flex flex-col gap-1">
+              {companies.map((c) => (
+                <label key={c.id} className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={selectedCompanyIds.includes(c.id)} onChange={() => toggleCompany(c.id)} />
+                  {c.name}
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="w-48">
-          <label className="block text-xs font-semibold uppercase text-neutral">Período</label>
-          <select
-            value={periodId}
-            onChange={(e) => setPeriodId(e.target.value)}
-            disabled={periods.length === 0}
-            className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
-          >
-            <option value="">{periods.length === 0 ? 'Selecione 2+ empresas' : 'Selecione...'}</option>
-            {periods.map((p) => (
-              <option key={p.id} value={p.id}>
-                {periodLabel(p)}
-              </option>
-            ))}
-          </select>
+          <div className="w-48">
+            <label className="block text-xs font-semibold uppercase text-neutral">Período</label>
+            <select
+              value={periodId}
+              onChange={(e) => setPeriodId(e.target.value)}
+              disabled={periods.length === 0}
+              className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            >
+              <option value="">{periods.length === 0 ? 'Selecione 2+ empresas' : 'Selecione...'}</option>
+              {periods.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {periodLabel(p)}
+                </option>
+              ))}
+            </select>
 
-          <Button className="mt-3 w-full" onClick={handleConsolidate} loading={calculating} disabled={selectedCompanyIds.length < 2 || !periodId}>
-            Consolidar
-          </Button>
+            <Button className="mt-3 w-full" onClick={handleConsolidate} loading={calculating} disabled={selectedCompanyIds.length < 2 || !periodId}>
+              Consolidar
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -128,24 +133,15 @@ export function ConsolidationPage() {
       {result && (
         <div>
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-            <div className={['inline-block rounded-md px-3 py-2 text-sm', result.equationBalanced ? 'bg-success/10 text-success' : 'bg-error/10 text-error'].join(' ')}>
-              Equação Ativo = Passivo + PL: {result.equationBalanced ? 'balanceada' : `desbalanceada (diferença de ${formatFinancialValue(result.equationVariance, 'currency')})`}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="secondary" size="small" onClick={() => handleExport('pdf')}>
-                Baixar PDF
-              </Button>
-              <Button variant="secondary" size="small" onClick={() => handleExport('xlsx')}>
-                Baixar Excel
-              </Button>
-            </div>
+            <EquationBanner balanced={result.equationBalanced} variance={result.equationVariance} />
+            <ExportButtons onExportPdf={() => handleExport('pdf')} onExportExcel={() => handleExport('xlsx')} />
           </div>
 
           {exportError && <p className="mt-2 text-sm text-error">{exportError}</p>}
 
-          <FinancialValueGrid title="Balanço Consolidado" definitions={BALANCO_VALUES} values={result.values} />
-          <FinancialValueGrid title="DRE Consolidado" definitions={DRE_VALUES} values={result.values} />
-          <FinancialValueGrid title="Indicadores Consolidados" definitions={INDICADORES} values={result.values} />
+          <FinancialValueGrid title="Balanço Consolidado" definitions={BALANCO_VALUES} values={result.values} icon={ScaleIcon} accent="blue" />
+          <FinancialValueGrid title="DRE Consolidado" definitions={DRE_VALUES} values={result.values} icon={LayersIcon} accent="violet" />
+          <FinancialValueGrid title="Indicadores Consolidados" definitions={INDICADORES} values={result.values} icon={TrendingUpIcon} accent="amber" />
 
           <div className="mt-6">
             <h2 className="text-sm font-semibold uppercase text-neutral">Reconciliação</h2>

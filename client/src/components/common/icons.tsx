@@ -51,3 +51,54 @@ export function UnlockIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function DownloadIcon(props: IconProps) {
+  return (
+    <svg {...base} className="h-4 w-4" {...props}>
+      <path d="M12 4v11" />
+      <path d="M8 11l4 4 4-4" />
+      <path d="M4 19h16" />
+    </svg>
+  )
+}
+
+export function ScaleIcon(props: IconProps) {
+  return (
+    <svg {...base} className="h-[18px] w-[18px]" {...props}>
+      <path d="M12 3v18" />
+      <path d="M7 21h10" />
+      <path d="M4 7h6" />
+      <path d="M14 7h6" />
+      <path d="M4 7l-2.5 5a2.5 2.5 0 0 0 5 0z" />
+      <path d="M20 7l-2.5 5a2.5 2.5 0 0 0 5 0z" />
+    </svg>
+  )
+}
+
+export function TrendingUpIcon(props: IconProps) {
+  return (
+    <svg {...base} className="h-[18px] w-[18px]" {...props}>
+      <path d="M4 16l6-6 4 4 6-7" />
+      <path d="M14 7h6v6" />
+    </svg>
+  )
+}
+
+export function CheckCircleIcon(props: IconProps) {
+  return (
+    <svg {...base} className="h-4 w-4" {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8 12.5l2.5 2.5L16 9.5" />
+    </svg>
+  )
+}
+
+export function AlertTriangleIcon(props: IconProps) {
+  return (
+    <svg {...base} className="h-4 w-4" {...props}>
+      <path d="M12 4L2.5 20h19z" />
+      <path d="M12 10v4" />
+      <path d="M12 17.5v.01" />
+    </svg>
+  )
+}

@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Button } from '../components/common/Button'
-import { HomeIcon } from '../components/common/navIcons'
+import { ScaleIcon, TrendingUpIcon } from '../components/common/icons'
+import { HomeIcon, LayersIcon } from '../components/common/navIcons'
+import { EquationBanner } from '../components/financial/EquationBanner'
+import { ExportButtons } from '../components/financial/ExportButtons'
 import { FinancialValueGrid } from '../components/financial/FinancialValueGrid'
-import { BALANCO_VALUES, DRE_VALUES, formatFinancialValue, INDICADORES } from '../components/financial/financialValueDefinitions'
+import { BALANCO_VALUES, DRE_VALUES, INDICADORES } from '../components/financial/financialValueDefinitions'
 import { calculationsApi } from '../services/calculationsApi'
 import { listCompanies } from '../services/documentsApi'
 import { reportsApi } from '../services/reportsApi'
@@ -91,43 +94,45 @@ export function DashboardPage() {
       </h1>
       <p className="mt-2 text-neutral">Totais do plano de contas e indicadores financeiros por empresa e período.</p>
 
-      <div className="mt-4 flex flex-wrap items-end gap-3">
-        <div className="w-64">
-          <label className="block text-xs font-semibold uppercase text-neutral">Empresa</label>
-          <select
-            value={companyId}
-            onChange={(e) => setCompanyId(e.target.value)}
-            className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
-          >
-            <option value="">Selecione...</option>
-            {companies.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div className="mt-4 rounded-lg border border-neutral/15 bg-surface p-4 shadow-sm">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="w-64">
+            <label className="block text-xs font-semibold uppercase text-neutral">Empresa</label>
+            <select
+              value={companyId}
+              onChange={(e) => setCompanyId(e.target.value)}
+              className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            >
+              <option value="">Selecione...</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className="w-48">
-          <label className="block text-xs font-semibold uppercase text-neutral">Período</label>
-          <select
-            value={periodId}
-            onChange={(e) => setPeriodId(e.target.value)}
-            disabled={periods.length === 0}
-            className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
-          >
-            <option value="">{periods.length === 0 ? 'Sem períodos' : 'Selecione...'}</option>
-            {periods.map((p) => (
-              <option key={p.id} value={p.id}>
-                {periodLabel(p)}
-              </option>
-            ))}
-          </select>
-        </div>
+          <div className="w-48">
+            <label className="block text-xs font-semibold uppercase text-neutral">Período</label>
+            <select
+              value={periodId}
+              onChange={(e) => setPeriodId(e.target.value)}
+              disabled={periods.length === 0}
+              className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            >
+              <option value="">{periods.length === 0 ? 'Sem períodos' : 'Selecione...'}</option>
+              {periods.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {periodLabel(p)}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <Button onClick={handleCalculate} loading={calculating} disabled={!periodId}>
-          Calcular
-        </Button>
+          <Button onClick={handleCalculate} loading={calculating} disabled={!periodId}>
+            Calcular
+          </Button>
+        </div>
       </div>
 
       {error && <p className="mt-3 text-sm text-error">{error}</p>}
@@ -139,24 +144,15 @@ export function DashboardPage() {
       {!loading && result && (
         <div className="mt-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className={['inline-block rounded-md px-3 py-2 text-sm', result.equationBalanced ? 'bg-success/10 text-success' : 'bg-error/10 text-error'].join(' ')}>
-              Equação Ativo = Passivo + PL: {result.equationBalanced ? 'balanceada' : `desbalanceada (diferença de ${formatFinancialValue(result.equationVariance, 'currency')})`}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="secondary" size="small" onClick={() => handleExport('pdf')}>
-                Baixar PDF
-              </Button>
-              <Button variant="secondary" size="small" onClick={() => handleExport('xlsx')}>
-                Baixar Excel
-              </Button>
-            </div>
+            <EquationBanner balanced={result.equationBalanced} variance={result.equationVariance} />
+            <ExportButtons onExportPdf={() => handleExport('pdf')} onExportExcel={() => handleExport('xlsx')} />
           </div>
 
           {exportError && <p className="mt-2 text-sm text-error">{exportError}</p>}
 
-          <FinancialValueGrid title="Balanço" definitions={BALANCO_VALUES} values={result.values} />
-          <FinancialValueGrid title="DRE" definitions={DRE_VALUES} values={result.values} />
-          <FinancialValueGrid title="Indicadores" definitions={INDICADORES} values={result.values} />
+          <FinancialValueGrid title="Balanço" definitions={BALANCO_VALUES} values={result.values} icon={ScaleIcon} accent="blue" />
+          <FinancialValueGrid title="DRE" definitions={DRE_VALUES} values={result.values} icon={LayersIcon} accent="violet" />
+          <FinancialValueGrid title="Indicadores" definitions={INDICADORES} values={result.values} icon={TrendingUpIcon} accent="amber" />
         </div>
       )}
     </div>
