@@ -58,7 +58,7 @@ export function Drawer({ open, onClose, title, footer, children }: DrawerProps) 
       >
         <div className="flex shrink-0 items-center justify-between border-b border-neutral/20 p-4">
           {title && <h2 className="text-lg font-semibold">{title}</h2>}
-          <button type="button" onClick={onClose} className="text-neutral hover:text-error" aria-label="Fechar">
+          <button type="button" onClick={onClose} className="cursor-pointer text-neutral hover:text-error" aria-label="Fechar">
             ✕
           </button>
         </div>
