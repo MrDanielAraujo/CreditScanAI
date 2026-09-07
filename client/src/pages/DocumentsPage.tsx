@@ -7,7 +7,7 @@ import { DownloadIcon } from '../components/common/icons'
 import { FileIcon } from '../components/common/navIcons'
 import { downloadDocument, listCompanies, listDocuments, reprocessDocument } from '../services/documentsApi'
 import { reportsApi } from '../services/reportsApi'
-import type { Company, DocumentListItem } from '../types/documents'
+import type { ClassificationStatus, Company, DocumentListItem, ExtractionStatus } from '../types/documents'
 import type { QualityReport } from '../types/reports'
 
 function formatDate(iso: string): string {
@@ -16,6 +16,21 @@ function formatDate(iso: string): string {
 
 function formatPercent(value: number | null): string {
   return value === null ? '—' : `${(value * 100).toFixed(0)}%`
+}
+
+const EXTRACTION_STATUS_LABELS: Record<ExtractionStatus, string> = {
+  Pending: 'Pendente',
+  Processing: 'Processando',
+  Completed: 'Concluída',
+  Failed: 'Falhou',
+}
+
+const CLASSIFICATION_STATUS_LABELS: Record<ClassificationStatus, string> = {
+  NotStarted: 'Não iniciada',
+  AwaitingDefaultChartOfAccounts: 'Aguardando plano de contas padrão',
+  Processing: 'Processando',
+  Completed: 'Concluída',
+  Failed: 'Falhou',
 }
 
 export function DocumentsPage() {
@@ -76,8 +91,8 @@ export function DocumentsPage() {
       .finally(() => setReportLoading(false))
   }
 
-  const extractionStatusOptions = ['Pending', 'Processing', 'Completed', 'Failed']
-  const classificationStatusOptions = ['NotStarted', 'AwaitingDefaultChartOfAccounts', 'Processing', 'Completed', 'Failed']
+  const extractionStatusOptions = Object.values(EXTRACTION_STATUS_LABELS)
+  const classificationStatusOptions = Object.values(CLASSIFICATION_STATUS_LABELS)
 
   const columns: DataGridColumn<DocumentListItem>[] = [
     { key: 'fileName', label: 'Arquivo' },
@@ -88,8 +103,18 @@ export function DocumentsPage() {
       getValue: (row) => row.uploadDate,
       render: (row) => formatDate(row.uploadDate),
     },
-    { key: 'extractionStatus', label: 'Extração', filterOptions: extractionStatusOptions },
-    { key: 'classificationStatus', label: 'Classificação', filterOptions: classificationStatusOptions },
+    {
+      key: 'extractionStatus',
+      label: 'Extração',
+      filterOptions: extractionStatusOptions,
+      getValue: (row) => EXTRACTION_STATUS_LABELS[row.extractionStatus],
+    },
+    {
+      key: 'classificationStatus',
+      label: 'Classificação',
+      filterOptions: classificationStatusOptions,
+      getValue: (row) => CLASSIFICATION_STATUS_LABELS[row.classificationStatus],
+    },
   ]
 
   const handleDownload = async () => {
