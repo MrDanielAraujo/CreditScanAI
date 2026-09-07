@@ -137,7 +137,21 @@ export function AccountSubtypesPage() {
         />
       </div>
 
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={editingId ? 'Editar Subtipo' : 'Novo Subtipo'}>
+      <Drawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        title={editingId ? 'Editar Subtipo' : 'Novo Subtipo'}
+        footer={
+          <>
+            <Button onClick={handleSubmit} disabled={!form.code || !form.name || !form.accountTypeId}>
+              {editingId ? 'Salvar' : 'Adicionar'}
+            </Button>
+            <Button variant="secondary" onClick={() => setDrawerOpen(false)}>
+              Cancelar
+            </Button>
+          </>
+        }
+      >
         <div className="grid max-w-2xl grid-cols-2 gap-3">
           <select
             value={form.accountTypeId}
@@ -168,14 +182,6 @@ export function AccountSubtypesPage() {
             onChange={(e) => setForm({ ...form, description: e.target.value || null })}
             className="col-span-2 rounded-md border border-neutral/30 px-3 py-2 text-sm"
           />
-          <div className="col-span-2 flex gap-2">
-            <Button onClick={handleSubmit} disabled={!form.code || !form.name || !form.accountTypeId}>
-              {editingId ? 'Salvar' : 'Adicionar'}
-            </Button>
-            <Button variant="secondary" onClick={() => setDrawerOpen(false)}>
-              Cancelar
-            </Button>
-          </div>
         </div>
       </Drawer>
     </div>

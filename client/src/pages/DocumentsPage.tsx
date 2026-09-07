@@ -148,7 +148,19 @@ export function DocumentsPage() {
         />
       </div>
 
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={report?.fileName ?? 'Detalhe do Documento'}>
+      <Drawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        title={report?.fileName ?? 'Detalhe do Documento'}
+        footer={
+          !reportLoading &&
+          report && (
+            <Button onClick={handleReprocess} loading={reprocessing}>
+              Reprocessar Classificação
+            </Button>
+          )
+        }
+      >
         {reportLoading && <p className="text-sm text-neutral">Carregando relatório...</p>}
         {reportError && <p className="text-sm text-error">{reportError}</p>}
 
@@ -186,10 +198,6 @@ export function DocumentsPage() {
             </div>
 
             {reprocessMessage && <p className="mt-4 text-sm text-neutral">{reprocessMessage}</p>}
-
-            <Button className="mt-4" onClick={handleReprocess} loading={reprocessing}>
-              Reprocessar Classificação
-            </Button>
           </div>
         )}
       </Drawer>

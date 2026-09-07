@@ -191,7 +191,27 @@ export function ReviewPage() {
         />
       </div>
 
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={detail?.sourceAccount.originalName ?? 'Detalhe da Classificação'}>
+      <Drawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        title={detail?.sourceAccount.originalName ?? 'Detalhe da Classificação'}
+        footer={
+          !detailLoading &&
+          detail && (
+            <>
+              <Button onClick={handleApprove} loading={actionLoading} disabled={!detail.suggestedStandardAccount}>
+                Aprovar
+              </Button>
+              <Button variant="secondary" onClick={handleOverride} loading={actionLoading} disabled={!overrideAccountId}>
+                Aplicar Correção
+              </Button>
+              <Button variant="danger" onClick={handleReject} loading={actionLoading}>
+                Rejeitar
+              </Button>
+            </>
+          )
+        }
+      >
         {detailLoading && <p className="text-sm text-neutral">Carregando detalhe...</p>}
         {!detailLoading && detail && (
           <div>
@@ -231,18 +251,6 @@ export function ReviewPage() {
             />
 
             {actionError && <p className="mt-3 text-sm text-error">{actionError}</p>}
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button onClick={handleApprove} loading={actionLoading} disabled={!detail.suggestedStandardAccount}>
-                Aprovar
-              </Button>
-              <Button variant="secondary" onClick={handleOverride} loading={actionLoading} disabled={!overrideAccountId}>
-                Aplicar Correção
-              </Button>
-              <Button variant="danger" onClick={handleReject} loading={actionLoading}>
-                Rejeitar
-              </Button>
-            </div>
           </div>
         )}
       </Drawer>

@@ -4,10 +4,11 @@ interface DrawerProps {
   open: boolean
   onClose: () => void
   title?: string
+  footer?: ReactNode
   children: ReactNode
 }
 
-export function Drawer({ open, onClose, title, children }: DrawerProps) {
+export function Drawer({ open, onClose, title, footer, children }: DrawerProps) {
   const [mounted, setMounted] = useState(open)
   const [visible, setVisible] = useState(false)
   const rafRef = useRef<number | null>(null)
@@ -50,18 +51,19 @@ export function Drawer({ open, onClose, title, children }: DrawerProps) {
         role="dialog"
         aria-modal="true"
         className={[
-          'absolute right-0 top-0 h-full w-[70vw] max-w-[70vw] min-w-[320px] overflow-y-auto bg-surface shadow-xl',
+          'absolute right-0 top-0 flex h-full w-[70vw] max-w-[70vw] min-w-[320px] flex-col bg-surface shadow-xl',
           'transition-transform duration-300 ease-in-out',
           visible ? 'translate-x-0' : 'translate-x-full',
         ].join(' ')}
       >
-        <div className="flex items-center justify-between border-b border-neutral/20 p-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-neutral/20 p-4">
           {title && <h2 className="text-lg font-semibold">{title}</h2>}
           <button type="button" onClick={onClose} className="text-neutral hover:text-error" aria-label="Fechar">
             ✕
           </button>
         </div>
-        <div className="p-4">{children}</div>
+        <div className="min-h-0 flex-1 overflow-auto p-4">{children}</div>
+        {footer && <div className="flex shrink-0 flex-wrap gap-2 border-t border-neutral/20 p-4">{footer}</div>}
       </div>
     </div>
   )

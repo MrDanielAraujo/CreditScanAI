@@ -196,7 +196,21 @@ export function UsersManagementPage() {
         />
       </div>
 
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Novo Usuário">
+      <Drawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        title="Novo Usuário"
+        footer={
+          <>
+            <Button onClick={handleCreate} disabled={!form.email || form.password.length < 8}>
+              Criar Usuário
+            </Button>
+            <Button variant="secondary" onClick={() => setDrawerOpen(false)}>
+              Cancelar
+            </Button>
+          </>
+        }
+      >
         <div className="grid max-w-2xl grid-cols-2 gap-3">
           <input
             placeholder="Email"
@@ -229,14 +243,6 @@ export function UsersManagementPage() {
               </option>
             ))}
           </select>
-          <div className="col-span-2 flex gap-2">
-            <Button onClick={handleCreate} disabled={!form.email || form.password.length < 8}>
-              Criar Usuário
-            </Button>
-            <Button variant="secondary" onClick={() => setDrawerOpen(false)}>
-              Cancelar
-            </Button>
-          </div>
         </div>
       </Drawer>
     </div>
