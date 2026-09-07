@@ -12,7 +12,7 @@ namespace CreditScanAI.PdfPipeline;
 
 public interface IPdfExtractionPipeline
 {
-    ExtractedFinancialData Process(byte[] pdfBytes, DocumentType documentType);
+    ExtractedFinancialData Process(byte[] pdfBytes);
 }
 
 /// <summary>
@@ -32,6 +32,19 @@ public sealed class PdfExtractionPipeline : IPdfExtractionPipeline
     private static readonly Regex ScaleFactorPhrase = new(
         @"EM\s+(MILHARES|MILHOES|MILHÕES|REAIS)",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    // Formato brasileiro de CNPJ, com ou sem máscara: 00.000.000/0000-00 ou 00000000000000.
+    private static readonly Regex CnpjPattern = new(
+        @"\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}",
+        RegexOptions.Compiled);
+
+    // Frases que não devem virar "nome da empresa" mesmo aparecendo perto de um CNPJ no texto.
+    private static readonly string[] CompanyNameStopPhrases =
+    [
+        "BALANCO PATRIMONIAL", "BALANÇO PATRIMONIAL",
+        "DEMONSTRACAO DO RESULTADO", "DEMONSTRAÇÃO DO RESULTADO",
+        "CNPJ", "RELATORIO", "RELATÓRIO"
+    ];
 
     private readonly IPdfWordExtractor _wordExtractor;
     private readonly ITableReconstructor _tableReconstructor;
@@ -62,19 +75,34 @@ public sealed class PdfExtractionPipeline : IPdfExtractionPipeline
         _validator = validator;
     }
 
-    public ExtractedFinancialData Process(byte[] pdfBytes, DocumentType documentType)
+    public ExtractedFinancialData Process(byte[] pdfBytes)
     {
         var words = _wordExtractor.ExtractWords(pdfBytes);
         var table = _tableReconstructor.Reconstruct(words, BodyStartKeywords);
 
         var hierarchy = _hierarchyBuilder.Build(table.DataRows);
-        _typeSubtypeDetector.Classify(hierarchy, documentType);
+
+        // First pass: pure keyword matching, no seed - documentType isn't known yet
+        // since it's no longer an upload-time input, it's derived from this result.
+        _typeSubtypeDetector.Classify(hierarchy, documentType: null);
+        var detectedDocumentType = DocumentTypeResolver.Resolve(hierarchy);
+
+        // Second pass: for a single-type document, reseed with the now-known type so
+        // any still-unmatched root (and its descendants) inherits it - the same safety
+        // net the old user-supplied documentType gave, just derived instead of asked.
+        // A Mixed document needs no reseed: both groups already self-classified by
+        // keyword alone, and there's no single type to seed with anyway.
+        if (detectedDocumentType is DocumentType.BalanceSheet or DocumentType.IncomeStatement)
+        {
+            _typeSubtypeDetector.Classify(hierarchy, detectedDocumentType);
+        }
 
         var (periods, otherColumns) = _periodDetector.Detect(table.Columns);
         var periodByColumn = periods.ToDictionary(p => p.ColumnIndex, p => p.Date);
         var labelByColumn = otherColumns.ToDictionary(c => c.ColumnIndex, c => c.RawLabel);
 
         var scaleFactor = DetectScaleFactor(words);
+        var detectedCompanyName = DetectCompanyName(words);
 
         var accountValues = FlattenAccountValues(hierarchy, periodByColumn, labelByColumn, scaleFactor);
 
@@ -84,7 +112,9 @@ public sealed class PdfExtractionPipeline : IPdfExtractionPipeline
             DetectedPeriods = periods,
             DetectedColumns = otherColumns,
             AccountValues = accountValues,
-            ScaleFactor = scaleFactor
+            ScaleFactor = scaleFactor,
+            DetectedDocumentType = detectedDocumentType,
+            DetectedCompanyName = detectedCompanyName
         };
 
         var validation = _validator.Validate(data);
@@ -96,6 +126,8 @@ public sealed class PdfExtractionPipeline : IPdfExtractionPipeline
             DetectedColumns = otherColumns,
             AccountValues = accountValues,
             ScaleFactor = scaleFactor,
+            DetectedDocumentType = detectedDocumentType,
+            DetectedCompanyName = detectedCompanyName,
             ValidationResult = validation,
             OverallConfidence = validation.OverallQualityScore
         };
@@ -164,5 +196,42 @@ public sealed class PdfExtractionPipeline : IPdfExtractionPipeline
             "MILHOES" or "MILHÕES" => 1_000_000,
             _ => 1
         };
+    }
+
+    /// <summary>
+    /// Best-effort: looks for a CNPJ-shaped number anywhere in the PDF text and takes the
+    /// words immediately before it as the company name (Brazilian letterheads typically
+    /// print "NOME DA EMPRESA LTDA" right above/beside "CNPJ: 00.000.000/0000-00"). Returns
+    /// null if no CNPJ pattern is found, or if the candidate text looks like a document
+    /// title rather than a company name - this is only ever used to pre-fill a new
+    /// company record, so a missed or empty result is fine, never an error.
+    /// </summary>
+    private static string? DetectCompanyName(IReadOnlyList<ExtractedWord> words)
+    {
+        var ordered = words.OrderBy(w => w.PageNumber).ThenByDescending(w => w.Top).ThenBy(w => w.Left).ToList();
+        var text = string.Join(" ", ordered.Select(w => w.Text));
+
+        var match = CnpjPattern.Match(text);
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        var before = text[..match.Index].TrimEnd();
+        var candidateWords = before.Split(' ', StringSplitOptions.RemoveEmptyEntries).TakeLast(8);
+        var candidate = string.Join(' ', candidateWords).Trim(' ', '-', ':', '.');
+
+        if (candidate.Length is < 3 or > 120)
+        {
+            return null;
+        }
+
+        var upper = candidate.ToUpperInvariant();
+        if (CompanyNameStopPhrases.Any(upper.Contains))
+        {
+            return null;
+        }
+
+        return candidate;
     }
 }

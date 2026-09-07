@@ -9,13 +9,16 @@ public interface ITypeSubtypeDetector
     /// <summary>
     /// Assigns InferredType/InferredSubtype (with a confidence score) to every
     /// node in the tree, walking it top-down so a node with no keyword match
-    /// of its own inherits its parent's classification. documentType seeds
-    /// the root nodes: an income-statement document's own top-level sections
-    /// are DRE by definition, even when their header text uses a plural form
-    /// ("Despesas...") that the keyword list otherwise avoids matching (to
-    /// keep balance-sheet lines like "Despesas Antecipadas" safe).
+    /// of its own inherits its parent's classification. documentType, when
+    /// known, seeds the root nodes: an income-statement document's own
+    /// top-level sections are DRE by definition, even when their header text
+    /// uses a plural form ("Despesas...") that the keyword list otherwise
+    /// avoids matching (to keep balance-sheet lines like "Despesas
+    /// Antecipadas" safe). Pass null to classify by keyword alone, with no
+    /// seed - used for the first pass of the document-type auto-detection in
+    /// <see cref="DocumentTypeResolver"/>, before the type is known.
     /// </summary>
-    void Classify(IReadOnlyList<HierarchicalAccount> roots, DocumentType documentType);
+    void Classify(IReadOnlyList<HierarchicalAccount> roots, DocumentType? documentType);
 }
 
 public sealed class TypeSubtypeDetector : ITypeSubtypeDetector
@@ -78,7 +81,7 @@ public sealed class TypeSubtypeDetector : ITypeSubtypeDetector
         ("AMORTIZAÇÕES", "DESPESA")
     ];
 
-    public void Classify(IReadOnlyList<HierarchicalAccount> roots, DocumentType documentType)
+    public void Classify(IReadOnlyList<HierarchicalAccount> roots, DocumentType? documentType)
     {
         var rootDefaultType = documentType == DocumentType.IncomeStatement ? "DRE" : null;
 

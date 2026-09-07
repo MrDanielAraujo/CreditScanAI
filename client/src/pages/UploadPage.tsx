@@ -3,41 +3,35 @@ import { Button } from '../components/common/Button'
 import { Dropzone } from '../components/documents/Dropzone'
 import { ProcessingStatus } from '../components/documents/ProcessingStatus'
 import { ResultView } from '../components/documents/ResultView'
-import { getDocumentResult, getDocumentStatus, listCompanies, uploadDocument } from '../services/documentsApi'
-import type {
-  Company,
-  DocumentResultResponse,
-  DocumentType,
-  ExtractionStatus,
-} from '../types/documents'
+import { getDocumentResult, getDocumentStatus, uploadDocument } from '../services/documentsApi'
+import type { DocumentResultResponse, ExtractionStatus } from '../types/documents'
 
 const POLL_INTERVAL_MS = 1000
 
-export function UploadPage() {
-  const [companies, setCompanies] = useState<Company[]>([])
-  const [companiesError, setCompaniesError] = useState<string | null>(null)
+function formatCnpj(rawValue: string): string {
+  const digits = rawValue.replace(/\D/g, '').slice(0, 14)
+  const parts = [digits.slice(0, 2), digits.slice(2, 5), digits.slice(5, 8), digits.slice(8, 12), digits.slice(12, 14)]
+  let formatted = parts[0]
+  if (parts[1]) formatted += `.${parts[1]}`
+  if (parts[2]) formatted += `.${parts[2]}`
+  if (parts[3]) formatted += `/${parts[3]}`
+  if (parts[4]) formatted += `-${parts[4]}`
+  return formatted
+}
 
+export function UploadPage() {
   const [file, setFile] = useState<File | null>(null)
-  const [companyId, setCompanyId] = useState('')
-  const [documentType, setDocumentType] = useState<DocumentType>('BalanceSheet')
+  const [cnpj, setCnpj] = useState('')
 
   const [documentId, setDocumentId] = useState<string | null>(null)
   const [status, setStatus] = useState<ExtractionStatus | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
   const [result, setResult] = useState<DocumentResultResponse | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitMessage, setSubmitMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const pollHandle = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  useEffect(() => {
-    listCompanies()
-      .then((data) => {
-        setCompanies(data)
-        if (data.length > 0) setCompanyId(data[0].id)
-      })
-      .catch((err) => setCompaniesError(err instanceof Error ? err.message : 'Erro ao carregar empresas'))
-  }, [])
 
   useEffect(() => {
     if (!documentId || status === 'Completed' || status === 'Failed') {
@@ -64,16 +58,22 @@ export function UploadPage() {
     }
   }, [documentId, status])
 
+  const cnpjDigits = cnpj.replace(/\D/g, '')
+
   const handleSubmit = async () => {
-    if (!file || !companyId) return
+    if (!file || cnpjDigits.length !== 14) return
 
     setIsSubmitting(true)
     setSubmitError(null)
+    setSubmitMessage(null)
 
     try {
-      const response = await uploadDocument(file, companyId, documentType)
+      const response = await uploadDocument(file, cnpj)
       setDocumentId(response.documentId)
       setStatus(response.status)
+      if (response.companyCreated) {
+        setSubmitMessage('Nenhuma empresa tinha esse CNPJ - cadastramos uma nova automaticamente.')
+      }
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Erro ao enviar documento')
     } finally {
@@ -88,6 +88,7 @@ export function UploadPage() {
     setStatusError(null)
     setResult(null)
     setSubmitError(null)
+    setSubmitMessage(null)
   }
 
   const isProcessing = documentId !== null
@@ -95,45 +96,31 @@ export function UploadPage() {
   return (
     <div>
       <h1 className="text-2xl font-semibold">Upload de Documento</h1>
-      <p className="mt-2 text-neutral">Envie um balanço patrimonial ou DRE em PDF para extração automática.</p>
+      <p className="mt-2 text-neutral">
+        Envie um balanço patrimonial, DRE, ou um PDF com os dois - o sistema identifica sozinho.
+      </p>
 
       {!isProcessing && (
         <div className="mt-6 max-w-xl space-y-4">
           <Dropzone file={file} onFileSelected={setFile} />
 
-          {companiesError && <p className="text-sm text-error">{companiesError}</p>}
-
           <div>
-            <label className="mb-1 block text-sm font-medium">Empresa</label>
-            <select
-              value={companyId}
-              onChange={(event) => setCompanyId(event.target.value)}
+            <label className="mb-1 block text-sm font-medium">CNPJ da empresa</label>
+            <input
+              type="text"
+              value={cnpj}
+              onChange={(event) => setCnpj(formatCnpj(event.target.value))}
+              placeholder="00.000.000/0000-00"
               className="w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
-            >
-              {companies.length === 0 && <option value="">Nenhuma empresa cadastrada</option>}
-              {companies.map((company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium">Tipo de demonstração</label>
-            <select
-              value={documentType}
-              onChange={(event) => setDocumentType(event.target.value as DocumentType)}
-              className="w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
-            >
-              <option value="BalanceSheet">Balanço Patrimonial</option>
-              <option value="IncomeStatement">DRE</option>
-            </select>
+            />
+            <p className="mt-1 text-xs text-neutral">
+              Se ainda não existir uma empresa com esse CNPJ, ela será cadastrada automaticamente.
+            </p>
           </div>
 
           {submitError && <p className="text-sm text-error">{submitError}</p>}
 
-          <Button onClick={handleSubmit} disabled={!file || !companyId || isSubmitting} loading={isSubmitting}>
+          <Button onClick={handleSubmit} disabled={!file || cnpjDigits.length !== 14 || isSubmitting} loading={isSubmitting}>
             Fazer Upload
           </Button>
         </div>
@@ -141,6 +128,7 @@ export function UploadPage() {
 
       {isProcessing && (
         <div className="mt-6 max-w-4xl space-y-4">
+          {submitMessage && <p className="text-sm text-success">{submitMessage}</p>}
           {status && <ProcessingStatus status={status} error={statusError} />}
 
           {result && (

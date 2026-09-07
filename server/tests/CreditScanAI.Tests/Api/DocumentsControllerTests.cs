@@ -24,15 +24,14 @@ public class DocumentsControllerTests : IClassFixture<AuthorizedApiWebApplicatio
     [Fact]
     public async Task UploadStatusResult_FullFlow_ExtractsRealData()
     {
-        // Arrange: seed a tenant + company (there's no Company CRUD API yet).
-        Guid companyId;
+        // Arrange: seed a tenant so the upload's CNPJ-based company auto-create has
+        // somewhere to land (there's no Company CRUD API yet, and the endpoint no
+        // longer takes a companyId directly).
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var tenantId = Guid.NewGuid();
-            companyId = Guid.NewGuid();
             db.Tenants.Add(new Tenant { Id = tenantId, Name = "Test Tenant", Active = true, CreatedAt = DateTime.UtcNow });
-            db.Companies.Add(new Company { Id = companyId, TenantId = tenantId, Code = "C1", Name = "Company 1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow });
             await db.SaveChangesAsync();
         }
 
@@ -40,8 +39,7 @@ public class DocumentsControllerTests : IClassFixture<AuthorizedApiWebApplicatio
 
         using var form = new MultipartFormDataContent
         {
-            { new StringContent(companyId.ToString()), "companyId" },
-            { new StringContent("BalanceSheet"), "documentType" }
+            { new StringContent("11.222.333/0001-81"), "cnpj" }
         };
         var fileContent = new ByteArrayContent(_factory.FixturePdfBytes);
         fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");

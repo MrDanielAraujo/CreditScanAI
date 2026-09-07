@@ -35,7 +35,7 @@ public class PdfExtractionPipelineTests
     {
         var bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestData", "Balanco2Trim2020.pdf"));
 
-        var result = _pipeline.Process(bytes, DocumentType.BalanceSheet);
+        var result = _pipeline.Process(bytes);
 
         _output.WriteLine($"Periods: {string.Join(", ", result.DetectedPeriods.Select(p => p.Date))}");
         _output.WriteLine($"Other columns: {string.Join(", ", result.DetectedColumns.Select(c => c.RawLabel))}");
@@ -93,7 +93,7 @@ public class PdfExtractionPipelineTests
     {
         var bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestData", "Dre2Trim2020.pdf"));
 
-        var result = _pipeline.Process(bytes, DocumentType.IncomeStatement);
+        var result = _pipeline.Process(bytes);
 
         _output.WriteLine($"Periods: {result.DetectedPeriods.Count}, Accounts: {result.HierarchicalAccounts.Count}, Values: {result.AccountValues.Count}");
         _output.WriteLine($"Errors: {string.Join(", ", result.ValidationResult.Errors.Select(e => e.Message))}");

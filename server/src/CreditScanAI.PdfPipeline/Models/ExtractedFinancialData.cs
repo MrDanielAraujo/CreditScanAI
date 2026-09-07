@@ -1,3 +1,4 @@
+using CreditScanAI.Domain.Enums;
 using CreditScanAI.PdfPipeline.Validation;
 
 namespace CreditScanAI.PdfPipeline.Models;
@@ -11,4 +12,8 @@ public sealed class ExtractedFinancialData
     public int ScaleFactor { get; init; } = 1;
     public PipelineValidationResult ValidationResult { get; init; } = new();
     public float OverallConfidence { get; init; }
+    /// <summary>Balanço/DRE/Misto, derivado da classificação das contas - null se nada foi classificado.</summary>
+    public DocumentType? DetectedDocumentType { get; init; }
+    /// <summary>Melhor palpite do nome da empresa, achado perto de um CNPJ no texto do PDF. Null se não achou.</summary>
+    public string? DetectedCompanyName { get; init; }
 }

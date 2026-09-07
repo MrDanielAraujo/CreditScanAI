@@ -7,7 +7,12 @@ public class Document
     public Guid Id { get; set; }
     public Guid TenantId { get; set; }
     public Guid CompanyId { get; set; }
-    public DocumentType DocumentType { get; set; }
+    /// <summary>
+    /// Balanço/DRE/Misto - detectado a partir da classificação por palavra-chave
+    /// das contas extraídas (Fase 2), não mais informado no upload. Null até a
+    /// extração terminar (ou se nada foi classificado com confiança suficiente).
+    /// </summary>
+    public DocumentType? DocumentType { get; set; }
     public DateTime UploadDate { get; set; }
     public string FileName { get; set; } = string.Empty;
     public string FilePath { get; set; } = string.Empty;

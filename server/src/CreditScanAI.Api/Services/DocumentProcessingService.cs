@@ -1,5 +1,6 @@
 using CreditScanAI.Domain.Entities;
 using CreditScanAI.Domain.Enums;
+using CreditScanAI.Domain.Utils;
 using CreditScanAI.Infrastructure.Persistence;
 using CreditScanAI.PdfPipeline;
 using CreditScanAI.PdfPipeline.Models;
@@ -46,7 +47,7 @@ public class DocumentProcessingService
 
     public async Task ProcessAsync(Guid documentId, CancellationToken cancellationToken)
     {
-        var document = await _db.Documents.FirstOrDefaultAsync(d => d.Id == documentId, cancellationToken);
+        var document = await _db.Documents.Include(d => d.Company).FirstOrDefaultAsync(d => d.Id == documentId, cancellationToken);
         if (document is null)
         {
             _logger.LogWarning("Documento {DocumentId} não encontrado para processamento", documentId);
@@ -60,11 +61,26 @@ public class DocumentProcessingService
         try
         {
             var bytes = await _storage.ReadAsync(document.FilePath, cancellationToken);
-            var result = _pipeline.Process(bytes, document.DocumentType);
+            var result = _pipeline.Process(bytes);
 
             var periodIdByColumn = await ResolvePeriodsAsync(document.TenantId, result.DetectedPeriods, cancellationToken);
             var labelByColumn = result.DetectedColumns.ToDictionary(c => c.ColumnIndex, c => c.RawLabel);
             PersistAccounts(document, result.HierarchicalAccounts, parentId: null, periodIdByColumn, labelByColumn, result.ScaleFactor);
+
+            document.DocumentType = result.DetectedDocumentType;
+
+            // Best-effort enrichment: a company auto-created from CNPJ at upload time
+            // (see DocumentsController.Upload) starts with a placeholder Name - if the
+            // extraction found a real one nearby the CNPJ in the PDF text, and nobody
+            // has already edited the placeholder away, fill it in now.
+            if (document.Company is { } company &&
+                result.DetectedCompanyName is { } detectedName &&
+                company.Cnpj is { } cnpj &&
+                company.Name == CnpjValidator.PlaceholderCompanyName(cnpj))
+            {
+                company.Name = detectedName;
+                company.UpdatedAt = DateTime.UtcNow;
+            }
 
             document.ExtractionStatus = ExtractionStatus.Completed;
             document.ExtractionCompletedAt = DateTime.UtcNow;

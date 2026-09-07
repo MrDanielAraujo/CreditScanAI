@@ -15,15 +15,10 @@ export async function listCompanies(): Promise<Company[]> {
   return apiGet<Company[]>('/api/companies')
 }
 
-export async function uploadDocument(
-  file: File,
-  companyId: string,
-  documentType: DocumentType,
-): Promise<UploadDocumentResponse> {
+export async function uploadDocument(file: File, cnpj: string): Promise<UploadDocumentResponse> {
   const form = new FormData()
   form.append('file', file)
-  form.append('companyId', companyId)
-  form.append('documentType', documentType)
+  form.append('cnpj', cnpj)
 
   const token = getStoredToken()
   const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {

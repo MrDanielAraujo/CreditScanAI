@@ -1,4 +1,4 @@
-export type DocumentType = 'BalanceSheet' | 'IncomeStatement'
+export type DocumentType = 'BalanceSheet' | 'IncomeStatement' | 'Mixed'
 
 export type ExtractionStatus = 'Pending' | 'Processing' | 'Completed' | 'Failed'
 
@@ -28,6 +28,8 @@ export interface UpsertCompanyRequest {
 export interface UploadDocumentResponse {
   documentId: string
   status: ExtractionStatus
+  companyId: string
+  companyCreated: boolean
 }
 
 export interface DocumentStatusResponse {
@@ -75,7 +77,7 @@ export interface DocumentListItem {
   fileName: string
   companyId: string
   companyName: string
-  documentType: DocumentType
+  documentType: DocumentType | null
   uploadDate: string
   extractionStatus: ExtractionStatus
   classificationStatus: ClassificationStatus

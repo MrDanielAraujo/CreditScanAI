@@ -4,6 +4,7 @@ using CreditScanAI.Api.Contracts.Documents;
 using CreditScanAI.Api.Services;
 using CreditScanAI.Domain.Entities;
 using CreditScanAI.Domain.Enums;
+using CreditScanAI.Domain.Utils;
 using CreditScanAI.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -88,7 +89,7 @@ public class DocumentsController : ControllerBase
 
         var items = page
             .Select(d => new DocumentListItemDto(
-                d.Id, d.FileName, d.CompanyId, d.CompanyName, d.DocumentType.ToString(),
+                d.Id, d.FileName, d.CompanyId, d.CompanyName, d.DocumentType?.ToString(),
                 d.UploadDate, d.ExtractionStatus.ToString(), d.ClassificationStatus.ToString()))
             .ToList();
 
@@ -126,13 +127,22 @@ public class DocumentsController : ControllerBase
             new ReprocessDocumentResponse(id, document.ClassificationStatus.ToString())));
     }
 
+    /// <summary>
+    /// O tipo do documento não é mais pedido aqui - é derivado automaticamente
+    /// depois da extração, a partir das contas que o sistema classifica por
+    /// palavra-chave (Balanço, DRE, ou os dois juntos). No lugar de escolher
+    /// uma empresa já cadastrada, o chamador informa o CNPJ: se não houver
+    /// empresa com esse CNPJ (dentro do único tenant existente), uma nova é
+    /// criada na hora com um nome provisório, que o processamento em segundo
+    /// plano tenta substituir pelo nome de verdade achado perto do CNPJ no
+    /// texto do PDF - o CNPJ é o dado que importa, o resto é best-effort.
+    /// </summary>
     [Authorize(Policy = AuthorizationPolicies.CanUpload)]
     [HttpPost("upload")]
     [RequestSizeLimit(MaxFileSizeBytes)]
     public async Task<ActionResult<ApiResponse<UploadDocumentResponse>>> Upload(
         IFormFile file,
-        [FromForm] Guid companyId,
-        [FromForm] string documentType,
+        [FromForm] string cnpj,
         CancellationToken cancellationToken)
     {
         if (file.Length == 0)
@@ -150,18 +160,42 @@ public class DocumentsController : ControllerBase
             return BadRequest(ApiResponse<object>.Fail("INVALID_REQUEST", "Apenas arquivos PDF são aceitos."));
         }
 
-        if (!Enum.TryParse<DocumentType>(documentType, ignoreCase: true, out var parsedDocumentType))
+        if (string.IsNullOrWhiteSpace(cnpj) || !CnpjValidator.IsValid(cnpj))
         {
-            return BadRequest(ApiResponse<object>.Fail("INVALID_REQUEST", "document_type inválido. Use BalanceSheet ou IncomeStatement."));
+            return BadRequest(ApiResponse<object>.Fail("INVALID_REQUEST", "CNPJ inválido."));
         }
 
-        var company = await _db.Companies.FirstOrDefaultAsync(c => c.Id == companyId, cancellationToken);
+        var tenantId = await _db.Tenants.OrderBy(t => t.CreatedAt).Select(t => t.Id).FirstOrDefaultAsync(cancellationToken);
+        if (tenantId == Guid.Empty)
+        {
+            return Conflict(ApiResponse<object>.Fail("NO_TENANT", "Nenhum tenant cadastrado."));
+        }
+
+        var cnpjDigits = CnpjValidator.OnlyDigits(cnpj);
+        var tenantCompaniesWithCnpj = await _db.Companies
+            .Where(c => c.TenantId == tenantId && c.Cnpj != null)
+            .ToListAsync(cancellationToken);
+        var company = tenantCompaniesWithCnpj.FirstOrDefault(c => CnpjValidator.OnlyDigits(c.Cnpj!) == cnpjDigits);
+        var companyCreated = false;
+
         if (company is null)
         {
-            return BadRequest(ApiResponse<object>.Fail("INVALID_REQUEST", "company_id não corresponde a nenhuma empresa cadastrada."));
+            company = new Company
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                Code = cnpjDigits,
+                Name = CnpjValidator.PlaceholderCompanyName(cnpj),
+                Cnpj = CnpjValidator.Format(cnpj),
+                ReportingCurrency = "BRL",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _db.Companies.Add(company);
+            await _db.SaveChangesAsync(cancellationToken);
+            companyCreated = true;
         }
 
-        var tenantId = company.TenantId;
         var documentId = Guid.NewGuid();
 
         string fileHash;
@@ -177,8 +211,8 @@ public class DocumentsController : ControllerBase
         {
             Id = documentId,
             TenantId = tenantId,
-            CompanyId = companyId,
-            DocumentType = parsedDocumentType,
+            CompanyId = company.Id,
+            DocumentType = null,
             UploadDate = DateTime.UtcNow,
             FileName = file.FileName,
             FilePath = filePath,
@@ -195,7 +229,7 @@ public class DocumentsController : ControllerBase
         _queue.Enqueue(documentId);
 
         return Accepted(ApiResponse<UploadDocumentResponse>.Ok(
-            new UploadDocumentResponse(documentId, document.ExtractionStatus.ToString())));
+            new UploadDocumentResponse(documentId, document.ExtractionStatus.ToString(), company.Id, companyCreated)));
     }
 
     [HttpGet("{id:guid}/status")]

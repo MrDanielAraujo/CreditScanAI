@@ -24,7 +24,7 @@ public sealed record DocumentListItemDto(
     string FileName,
     Guid CompanyId,
     string CompanyName,
-    string DocumentType,
+    string? DocumentType,
     DateTime UploadDate,
     string ExtractionStatus,
     string ClassificationStatus);
