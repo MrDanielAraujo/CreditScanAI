@@ -72,15 +72,16 @@ export function AccountTypesPage() {
     { key: 'sequenceOrder', label: 'Ordem', align: 'right', getValue: (row) => row.sequenceOrder ?? '-' },
     {
       key: 'actions',
-      label: '',
-      width: 56,
+      label: 'Ações',
+      width: 70,
       sortable: false,
       filterable: false,
       groupable: false,
       frozen: true,
+      preventRowClick: true,
       render: (row) => (
         <button
-          className="text-error hover:text-red-700"
+          className="cursor-pointer text-error hover:text-red-700"
           title="Excluir"
           aria-label="Excluir"
           onClick={(e) => {

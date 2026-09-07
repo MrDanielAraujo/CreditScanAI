@@ -124,16 +124,17 @@ export function UsersManagementPage() {
     },
     {
       key: 'actions',
-      label: '',
+      label: 'Ações',
       width: 180,
       sortable: false,
       filterable: false,
       groupable: false,
       frozen: true,
+      preventRowClick: true,
       render: (row) => (
         <div className="flex flex-wrap items-center gap-3">
           <button
-            className="text-primary hover:text-blue-700"
+            className="cursor-pointer text-primary hover:text-blue-700"
             title="Redefinir senha"
             aria-label="Redefinir senha"
             onClick={() => setResetPasswordFor(row.id === resetPasswordFor ? null : row.id)}
@@ -141,7 +142,7 @@ export function UsersManagementPage() {
             <KeyIcon />
           </button>
           <button
-            className={row.isLockedOut ? 'text-success hover:text-green-700' : 'text-error hover:text-red-700'}
+            className={['cursor-pointer', row.isLockedOut ? 'text-success hover:text-green-700' : 'text-error hover:text-red-700'].join(' ')}
             title={row.isLockedOut ? 'Desbloquear' : 'Revogar acesso'}
             aria-label={row.isLockedOut ? 'Desbloquear' : 'Revogar acesso'}
             onClick={() => handleToggleLock(row)}

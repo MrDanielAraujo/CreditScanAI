@@ -301,7 +301,11 @@ export function DataGrid<T>({
       )
     }
     return cols.map((column) => (
-      <td key={column.key} className={['p-2', alignClass(column.align)].join(' ')}>
+      <td
+        key={column.key}
+        onClick={column.preventRowClick ? (e) => e.stopPropagation() : undefined}
+        className={['p-2', alignClass(column.align), column.preventRowClick ? 'cursor-default bg-surface-muted' : ''].join(' ')}
+      >
         {renderCell(column, entry.row)}
       </td>
     ))

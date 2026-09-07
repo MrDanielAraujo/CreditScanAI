@@ -21,6 +21,11 @@ export interface DataGridColumn<T> {
   align?: 'left' | 'right' | 'center'
   /** Congela a coluna num painel à esquerda que não rola horizontalmente. Não é arrastável/reordenável. */
   frozen?: boolean
+  /**
+   * Para colunas de ação: a célula não reage ao hover/clique da linha (só o
+   * conteúdo que ela renderiza - normalmente um ícone - responde a isso).
+   */
+  preventRowClick?: boolean
 }
 
 export interface DataGridProps<T> {

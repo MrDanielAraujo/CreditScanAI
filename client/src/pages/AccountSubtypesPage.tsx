@@ -85,15 +85,16 @@ export function AccountSubtypesPage() {
     { key: 'accountTypeId', label: 'Tipo', getValue: (row) => typeName(row.accountTypeId) },
     {
       key: 'actions',
-      label: '',
-      width: 56,
+      label: 'Ações',
+      width: 70,
       sortable: false,
       filterable: false,
       groupable: false,
       frozen: true,
+      preventRowClick: true,
       render: (row) => (
         <button
-          className="text-error hover:text-red-700"
+          className="cursor-pointer text-error hover:text-red-700"
           title="Excluir"
           aria-label="Excluir"
           onClick={(e) => {
