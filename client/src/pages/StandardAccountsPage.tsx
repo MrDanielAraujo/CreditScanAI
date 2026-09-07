@@ -103,9 +103,16 @@ export function StandardAccountsPage() {
     { key: 'code', label: 'Código' },
     { key: 'name', label: 'Nome' },
     {
-      key: 'typeSubtype',
-      label: 'Tipo / Subtipo',
-      getValue: (row) => `${typeName(row.accountTypeId)} / ${subtypeName(row.accountSubtypeId)}`,
+      key: 'type',
+      label: 'Tipo',
+      filterOptions: types.map((t) => t.name),
+      getValue: (row) => typeName(row.accountTypeId),
+    },
+    {
+      key: 'subtype',
+      label: 'Subtipo',
+      filterOptions: subtypes.map((s) => s.name),
+      getValue: (row) => subtypeName(row.accountSubtypeId),
     },
     { key: 'chartOfAccountsId', label: 'Plano', getValue: (row) => chartName(row.chartOfAccountsId) },
     {
