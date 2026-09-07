@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '../components/common/Button'
 import { DataGrid } from '../components/common/DataGrid/DataGrid'
 import type { DataGridColumn } from '../components/common/DataGrid/types'
+import { Drawer } from '../components/common/Drawer'
 import { classificationsApi } from '../services/classificationsApi'
 import { listCompanies } from '../services/documentsApi'
 import { standardAccountsApi } from '../services/registrationsApi'
@@ -20,6 +21,7 @@ export function ReviewPage() {
   const [listError, setListError] = useState<string | null>(null)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [detail, setDetail] = useState<ClassificationDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [standardAccounts, setStandardAccounts] = useState<StandardAccount[]>([])
@@ -52,6 +54,7 @@ export function ReviewPage() {
 
   const selectItem = (classificationId: string) => {
     setSelectedId(classificationId)
+    setDrawerOpen(true)
     setDetail(null)
     setStandardAccounts([])
     setOverrideAccountId('')
@@ -72,6 +75,7 @@ export function ReviewPage() {
 
   const afterAction = () => {
     setSelectedId(null)
+    setDrawerOpen(false)
     setDetail(null)
     loadPending()
   }
@@ -137,7 +141,7 @@ export function ReviewPage() {
   ]
 
   return (
-    <div>
+    <div className="flex h-full flex-col">
       <h1 className="text-2xl font-semibold">Fila de Revisão</h1>
       <p className="mt-2 text-neutral">
         {showAll
@@ -168,80 +172,76 @@ export function ReviewPage() {
 
       {listError && <p className="mt-3 text-sm text-error">{listError}</p>}
 
-      <div className="mt-6 flex gap-6">
-        <div className="flex-1">
-          <p className="mb-2 text-sm text-neutral">
-            {totalCount} {showAll ? 'classificação(ões) no servidor' : 'pendente(s) no servidor'} (máx. 100 carregadas por vez)
-          </p>
-          <DataGrid
-            columns={columns}
-            data={items}
-            rowKey={(item) => item.classificationId}
-            loading={listLoading}
-            onRowClick={(item) => selectItem(item.classificationId)}
-            isRowSelected={(item) => item.classificationId === selectedId}
-            emptyMessage={showAll ? 'Nenhuma classificação encontrada.' : 'Nenhum item pendente de revisão.'}
-          />
-        </div>
-
-        <div className="w-96 shrink-0 rounded-md border border-neutral/20 p-4">
-          {!selectedId && <p className="text-sm text-neutral">Selecione um item na lista para ver o detalhe.</p>}
-          {selectedId && detailLoading && <p className="text-sm text-neutral">Carregando detalhe...</p>}
-          {selectedId && !detailLoading && detail && (
-            <div>
-              <h2 className="text-lg font-semibold">{detail.sourceAccount.originalName}</h2>
-              <p className="mt-1 text-xs text-neutral">
-                Tipo: {detail.sourceAccount.inferredType ?? '—'} / Subtipo: {detail.sourceAccount.inferredSubtype ?? '—'}
-              </p>
-
-              <div className="mt-4 rounded-md bg-surface-muted p-3">
-                <p className="text-xs font-semibold uppercase text-neutral">Sugestão</p>
-                <p className="mt-1 text-sm font-medium">{detail.suggestedStandardAccount?.name ?? 'Nenhuma'}</p>
-                <p className="text-xs text-neutral">
-                  {detail.classificationMethod} · {(detail.confidenceScore * 100).toFixed(0)}% de confiança
-                </p>
-                {detail.evidence && <p className="mt-2 text-xs text-neutral">{detail.evidence}</p>}
-              </div>
-
-              <label className="mt-4 block text-xs font-semibold uppercase text-neutral">Corrigir para</label>
-              <select
-                value={overrideAccountId}
-                onChange={(e) => setOverrideAccountId(e.target.value)}
-                className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
-              >
-                <option value="">Selecione uma conta padrão...</option>
-                {standardAccounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
-
-              <label className="mt-3 block text-xs font-semibold uppercase text-neutral">Observação (opcional)</label>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                rows={2}
-                className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
-              />
-
-              {actionError && <p className="mt-3 text-sm text-error">{actionError}</p>}
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button onClick={handleApprove} loading={actionLoading} disabled={!detail.suggestedStandardAccount}>
-                  Aprovar
-                </Button>
-                <Button variant="secondary" onClick={handleOverride} loading={actionLoading} disabled={!overrideAccountId}>
-                  Aplicar Correção
-                </Button>
-                <Button variant="danger" onClick={handleReject} loading={actionLoading}>
-                  Rejeitar
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
+      <p className="mb-2 mt-4 text-sm text-neutral">
+        {totalCount} {showAll ? 'classificação(ões) no servidor' : 'pendente(s) no servidor'} (máx. 100 carregadas por vez)
+      </p>
+      <div className="min-h-0 flex-1 pb-[10px]">
+        <DataGrid
+          columns={columns}
+          data={items}
+          rowKey={(item) => item.classificationId}
+          loading={listLoading}
+          onRowClick={(item) => selectItem(item.classificationId)}
+          isRowSelected={(item) => item.classificationId === selectedId}
+          emptyMessage={showAll ? 'Nenhuma classificação encontrada.' : 'Nenhum item pendente de revisão.'}
+        />
       </div>
+
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={detail?.sourceAccount.originalName ?? 'Detalhe da Classificação'}>
+        {detailLoading && <p className="text-sm text-neutral">Carregando detalhe...</p>}
+        {!detailLoading && detail && (
+          <div>
+            <p className="text-xs text-neutral">
+              Tipo: {detail.sourceAccount.inferredType ?? '—'} / Subtipo: {detail.sourceAccount.inferredSubtype ?? '—'}
+            </p>
+
+            <div className="mt-4 rounded-md bg-surface-muted p-3">
+              <p className="text-xs font-semibold uppercase text-neutral">Sugestão</p>
+              <p className="mt-1 text-sm font-medium">{detail.suggestedStandardAccount?.name ?? 'Nenhuma'}</p>
+              <p className="text-xs text-neutral">
+                {detail.classificationMethod} · {(detail.confidenceScore * 100).toFixed(0)}% de confiança
+              </p>
+              {detail.evidence && <p className="mt-2 text-xs text-neutral">{detail.evidence}</p>}
+            </div>
+
+            <label className="mt-4 block text-xs font-semibold uppercase text-neutral">Corrigir para</label>
+            <select
+              value={overrideAccountId}
+              onChange={(e) => setOverrideAccountId(e.target.value)}
+              className="mt-1 w-full max-w-md rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            >
+              <option value="">Selecione uma conta padrão...</option>
+              {standardAccounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+
+            <label className="mt-3 block text-xs font-semibold uppercase text-neutral">Observação (opcional)</label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={2}
+              className="mt-1 w-full max-w-md rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            />
+
+            {actionError && <p className="mt-3 text-sm text-error">{actionError}</p>}
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button onClick={handleApprove} loading={actionLoading} disabled={!detail.suggestedStandardAccount}>
+                Aprovar
+              </Button>
+              <Button variant="secondary" onClick={handleOverride} loading={actionLoading} disabled={!overrideAccountId}>
+                Aplicar Correção
+              </Button>
+              <Button variant="danger" onClick={handleReject} loading={actionLoading}>
+                Rejeitar
+              </Button>
+            </div>
+          </div>
+        )}
+      </Drawer>
     </div>
   )
 }

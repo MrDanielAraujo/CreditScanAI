@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '../components/common/Button'
 import { DataGrid } from '../components/common/DataGrid/DataGrid'
 import type { DataGridColumn } from '../components/common/DataGrid/types'
+import { Drawer } from '../components/common/Drawer'
 import { listCompanies, listDocuments, reprocessDocument } from '../services/documentsApi'
 import { reportsApi } from '../services/reportsApi'
 import type { Company, DocumentListItem } from '../types/documents'
@@ -26,6 +27,7 @@ export function DocumentsPage() {
   const [listError, setListError] = useState<string | null>(null)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [report, setReport] = useState<QualityReport | null>(null)
   const [reportLoading, setReportLoading] = useState(false)
   const [reportError, setReportError] = useState<string | null>(null)
@@ -55,6 +57,7 @@ export function DocumentsPage() {
 
   const selectDocument = (documentId: string) => {
     setSelectedId(documentId)
+    setDrawerOpen(true)
     setReport(null)
     setReportError(null)
     setReprocessMessage(null)
@@ -99,7 +102,7 @@ export function DocumentsPage() {
   }
 
   return (
-    <div>
+    <div className="flex h-full flex-col">
       <h1 className="text-2xl font-semibold">Gerenciamento de Documentos</h1>
       <p className="mt-2 text-neutral">Todos os documentos já enviados. Selecione um para ver o relatório de qualidade ou reprocessar.</p>
 
@@ -128,69 +131,64 @@ export function DocumentsPage() {
 
       {listError && <p className="mt-3 text-sm text-error">{listError}</p>}
 
-      <div className="mt-6 flex gap-6">
-        <div className="flex-1">
-          <p className="mb-2 text-sm text-neutral">{totalCount} documento(s)</p>
-          <DataGrid
-            columns={columns}
-            data={items}
-            rowKey={(item) => item.id}
-            loading={listLoading}
-            onRowClick={(item) => selectDocument(item.id)}
-            isRowSelected={(item) => item.id === selectedId}
-            emptyMessage="Nenhum documento encontrado."
-          />
-        </div>
-
-        <div className="w-96 shrink-0 rounded-md border border-neutral/20 p-4">
-          {!selectedId && <p className="text-sm text-neutral">Selecione um documento na lista para ver o detalhe.</p>}
-          {selectedId && reportLoading && <p className="text-sm text-neutral">Carregando relatório...</p>}
-          {selectedId && reportError && <p className="text-sm text-error">{reportError}</p>}
-
-          {selectedId && !reportLoading && report && (
-            <div>
-              <h2 className="text-lg font-semibold">{report.fileName}</h2>
-
-              <div className="mt-4 rounded-md bg-surface-muted p-3">
-                <p className="text-xs font-semibold uppercase text-neutral">Classificações</p>
-                <p className="mt-1 text-sm">Total: {report.totalClassifiedAccounts}</p>
-                <p className="text-sm text-neutral">
-                  Aprovadas: {report.approvedCount} · Corrigidas: {report.overriddenCount} · Rejeitadas: {report.rejectedCount}
-                </p>
-                <p className="text-sm text-neutral">
-                  Auto-aprovadas: {report.pendingCount} · Precisam revisão: {report.needsReviewCount}
-                </p>
-                <p className="mt-1 text-sm text-neutral">Confiança média: {formatPercent(report.averageConfidence)}</p>
-              </div>
-
-              <div className="mt-4">
-                <p className="text-xs font-semibold uppercase text-neutral">Equação por período</p>
-                {report.periodEquationStatus.length === 0 && <p className="mt-1 text-sm text-neutral">Sem períodos detectados.</p>}
-                <ul className="mt-1 flex flex-col gap-1 text-sm">
-                  {report.periodEquationStatus.map((p) => (
-                    <li key={p.periodId}>
-                      {p.periodLabel}:{' '}
-                      {p.equationBalanced === null ? (
-                        <span className="text-neutral">ainda não calculado</span>
-                      ) : p.equationBalanced ? (
-                        <span className="text-success">balanceada</span>
-                      ) : (
-                        <span className="text-error">desbalanceada</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {reprocessMessage && <p className="mt-4 text-sm text-neutral">{reprocessMessage}</p>}
-
-              <Button className="mt-4" onClick={handleReprocess} loading={reprocessing}>
-                Reprocessar Classificação
-              </Button>
-            </div>
-          )}
-        </div>
+      <p className="mb-2 mt-4 text-sm text-neutral">{totalCount} documento(s)</p>
+      <div className="min-h-0 flex-1 pb-[10px]">
+        <DataGrid
+          columns={columns}
+          data={items}
+          rowKey={(item) => item.id}
+          loading={listLoading}
+          onRowClick={(item) => selectDocument(item.id)}
+          isRowSelected={(item) => item.id === selectedId}
+          emptyMessage="Nenhum documento encontrado."
+        />
       </div>
+
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={report?.fileName ?? 'Detalhe do Documento'}>
+        {reportLoading && <p className="text-sm text-neutral">Carregando relatório...</p>}
+        {reportError && <p className="text-sm text-error">{reportError}</p>}
+
+        {!reportLoading && report && (
+          <div>
+            <div className="rounded-md bg-surface-muted p-3">
+              <p className="text-xs font-semibold uppercase text-neutral">Classificações</p>
+              <p className="mt-1 text-sm">Total: {report.totalClassifiedAccounts}</p>
+              <p className="text-sm text-neutral">
+                Aprovadas: {report.approvedCount} · Corrigidas: {report.overriddenCount} · Rejeitadas: {report.rejectedCount}
+              </p>
+              <p className="text-sm text-neutral">
+                Auto-aprovadas: {report.pendingCount} · Precisam revisão: {report.needsReviewCount}
+              </p>
+              <p className="mt-1 text-sm text-neutral">Confiança média: {formatPercent(report.averageConfidence)}</p>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-xs font-semibold uppercase text-neutral">Equação por período</p>
+              {report.periodEquationStatus.length === 0 && <p className="mt-1 text-sm text-neutral">Sem períodos detectados.</p>}
+              <ul className="mt-1 flex flex-col gap-1 text-sm">
+                {report.periodEquationStatus.map((p) => (
+                  <li key={p.periodId}>
+                    {p.periodLabel}:{' '}
+                    {p.equationBalanced === null ? (
+                      <span className="text-neutral">ainda não calculado</span>
+                    ) : p.equationBalanced ? (
+                      <span className="text-success">balanceada</span>
+                    ) : (
+                      <span className="text-error">desbalanceada</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {reprocessMessage && <p className="mt-4 text-sm text-neutral">{reprocessMessage}</p>}
+
+            <Button className="mt-4" onClick={handleReprocess} loading={reprocessing}>
+              Reprocessar Classificação
+            </Button>
+          </div>
+        )}
+      </Drawer>
     </div>
   )
 }
