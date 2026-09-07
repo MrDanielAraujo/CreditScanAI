@@ -95,7 +95,7 @@ export function AccountSubtypesPage() {
       preventRowClick: true,
       render: (row) => (
         <button
-          className="cursor-pointer text-error hover:text-red-700"
+          className="cursor-pointer text-error hover:text-red-700 dark:hover:text-red-400"
           title="Excluir"
           aria-label="Excluir"
           onClick={(e) => {

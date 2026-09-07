@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 
@@ -14,9 +16,33 @@
   --color-surface-dark: #111827;
 }
 
+/*
+ * Modo escuro: só troca os valores dos mesmos tokens usados em todo o app
+ * (bg-surface, text-surface-dark, etc.), então a maioria dos componentes já
+ * se adapta sem precisar de classes dark: espalhadas por todo canto. Cores
+ * literais da paleta Tailwind (accentColors.ts, Button.tsx) continuam
+ * precisando de dark: explícito, pois não passam por essas variáveis.
+ */
+.dark {
+  --color-primary: #3b82f6;
+  --color-success: #34d399;
+  --color-warning: #fb923c;
+  --color-error: #f87171;
+  --color-neutral: #9ca3af;
+
+  --color-surface: #111827;
+  --color-surface-muted: #1f2937;
+  --color-surface-dark: #f3f4f6;
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
   background-color: var(--color-surface-muted);
   color: var(--color-surface-dark);
+  color-scheme: light;
+}
+
+.dark body {
+  color-scheme: dark;
 }

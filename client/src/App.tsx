@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { MainLayout } from './components/layout/MainLayout'
 import { AuthProvider } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import { AccountSubtypesPage } from './pages/AccountSubtypesPage'
 import { AccountTypesPage } from './pages/AccountTypesPage'
 import { ChartOfAccountsPage } from './pages/ChartOfAccountsPage'
@@ -44,24 +45,26 @@ function AppRoutes() {
 
 export function App() {
   return (
-    <AuthProvider>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route
-          path="/*"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <AppRoutes />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route
+            path="/*"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <AppRoutes />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 
