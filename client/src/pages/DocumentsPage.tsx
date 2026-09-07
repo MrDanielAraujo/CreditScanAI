@@ -3,6 +3,7 @@ import { Button } from '../components/common/Button'
 import { DataGrid } from '../components/common/DataGrid/DataGrid'
 import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { Drawer } from '../components/common/Drawer'
+import { FileIcon } from '../components/common/navIcons'
 import { listCompanies, listDocuments, reprocessDocument } from '../services/documentsApi'
 import { reportsApi } from '../services/reportsApi'
 import type { Company, DocumentListItem } from '../types/documents'
@@ -103,7 +104,10 @@ export function DocumentsPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <h1 className="text-2xl font-semibold">Gerenciamento de Documentos</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-semibold">
+        <FileIcon className="h-6 w-6" />
+        Gerenciamento de Documentos
+      </h1>
       <p className="mt-2 text-neutral">Todos os documentos já enviados. Selecione um para ver o relatório de qualidade ou reprocessar.</p>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">

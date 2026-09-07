@@ -4,6 +4,7 @@ import { DataGrid } from '../components/common/DataGrid/DataGrid'
 import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { Drawer } from '../components/common/Drawer'
 import { KeyIcon, LockIcon, UnlockIcon } from '../components/common/icons'
+import { UsersIcon } from '../components/common/navIcons'
 import { usersApi } from '../services/usersApi'
 import type { CreateUserRequest, UserListItem, UserRole } from '../types/users'
 
@@ -172,7 +173,10 @@ export function UsersManagementPage() {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Gerenciamento de Usuários</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold">
+            <UsersIcon className="h-6 w-6" />
+            Gerenciamento de Usuários
+          </h1>
           <p className="mt-2 text-neutral">Crie usuários com o papel certo, ajuste papéis, redefina senhas e revogue acesso. Só Admin.</p>
         </div>
         <Button onClick={openCreateDrawer}>Novo Usuário</Button>

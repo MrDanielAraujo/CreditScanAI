@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button } from '../components/common/Button'
+import { LayersIcon } from '../components/common/navIcons'
 import { FinancialValueGrid } from '../components/financial/FinancialValueGrid'
 import { BALANCO_VALUES, DRE_VALUES, formatFinancialValue, INDICADORES } from '../components/financial/financialValueDefinitions'
 import { companiesApi } from '../services/companiesApi'
@@ -78,7 +79,10 @@ export function ConsolidationPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Consolidação</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-semibold">
+        <LayersIcon className="h-6 w-6" />
+        Consolidação
+      </h1>
       <p className="mt-2 text-neutral">
         Soma os totais já calculados (Dashboard) de duas ou mais empresas para o mesmo período. Cada empresa precisa ter sido
         calculada antes.

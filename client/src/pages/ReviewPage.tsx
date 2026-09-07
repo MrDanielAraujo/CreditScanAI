@@ -3,6 +3,7 @@ import { Button } from '../components/common/Button'
 import { DataGrid } from '../components/common/DataGrid/DataGrid'
 import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { Drawer } from '../components/common/Drawer'
+import { CheckSquareIcon } from '../components/common/navIcons'
 import { classificationsApi } from '../services/classificationsApi'
 import { listCompanies } from '../services/documentsApi'
 import { standardAccountsApi } from '../services/registrationsApi'
@@ -142,7 +143,10 @@ export function ReviewPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <h1 className="text-2xl font-semibold">Fila de Revisão</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-semibold">
+        <CheckSquareIcon className="h-6 w-6" />
+        Fila de Revisão
+      </h1>
       <p className="mt-2 text-neutral">
         {showAll
           ? 'Todas as classificações, incluindo as já auto-aprovadas com confiança alta - confirme ou corrija qualquer uma.'

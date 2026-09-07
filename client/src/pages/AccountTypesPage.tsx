@@ -4,6 +4,7 @@ import { DataGrid } from '../components/common/DataGrid/DataGrid'
 import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { Drawer } from '../components/common/Drawer'
 import { TrashIcon } from '../components/common/icons'
+import { GridIcon } from '../components/common/navIcons'
 import { accountTypesApi } from '../services/registrationsApi'
 import type { AccountType, UpsertAccountTypeRequest } from '../types/registrations'
 
@@ -99,7 +100,10 @@ export function AccountTypesPage() {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Tipos de Conta</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold">
+            <GridIcon className="h-6 w-6" />
+            Tipos de Conta
+          </h1>
           <p className="mt-2 text-neutral">Ex: Ativo, Passivo, DRE.</p>
         </div>
         <Button onClick={openCreateDrawer}>Novo Tipo</Button>

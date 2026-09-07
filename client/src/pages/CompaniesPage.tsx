@@ -4,6 +4,7 @@ import { DataGrid } from '../components/common/DataGrid/DataGrid'
 import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { Drawer } from '../components/common/Drawer'
 import { TrashIcon } from '../components/common/icons'
+import { BuildingIcon } from '../components/common/navIcons'
 import { companiesApi } from '../services/companiesApi'
 import type { Company, UpsertCompanyRequest } from '../types/documents'
 
@@ -110,7 +111,10 @@ export function CompaniesPage() {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Empresas</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold">
+            <BuildingIcon className="h-6 w-6" />
+            Empresas
+          </h1>
           <p className="mt-2 text-neutral">Empresas cujos documentos podem ser classificados, calculados e consolidados.</p>
         </div>
         <Button onClick={openCreateDrawer}>Nova Empresa</Button>

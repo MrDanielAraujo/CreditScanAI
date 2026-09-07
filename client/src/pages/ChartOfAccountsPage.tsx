@@ -4,6 +4,7 @@ import { DataGrid } from '../components/common/DataGrid/DataGrid'
 import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { Drawer } from '../components/common/Drawer'
 import { TrashIcon } from '../components/common/icons'
+import { BookIcon } from '../components/common/navIcons'
 import { chartOfAccountsApi } from '../services/registrationsApi'
 import type { ChartOfAccounts, UpsertChartOfAccountsRequest } from '../types/registrations'
 
@@ -127,7 +128,10 @@ export function ChartOfAccountsPage() {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Planos de Contas</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold">
+            <BookIcon className="h-6 w-6" />
+            Planos de Contas
+          </h1>
           <p className="mt-2 text-neutral">
             O plano marcado como <strong>padrão</strong> é o usado automaticamente na classificação de documentos.
           </p>

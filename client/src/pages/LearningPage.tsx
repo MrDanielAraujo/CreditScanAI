@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { LightbulbIcon } from '../components/common/navIcons'
 import { learningApi } from '../services/learningApi'
 import type { LearningStats } from '../types/learning'
 
@@ -87,7 +88,10 @@ export function LearningPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Dashboard de Aprendizado</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-semibold">
+        <LightbulbIcon className="h-6 w-6" />
+        Dashboard de Aprendizado
+      </h1>
       <p className="mt-2 text-neutral">
         Contagens reais de classificações, decisões humanas e padrões aprendidos entre empresas - sem métricas inventadas.
       </p>

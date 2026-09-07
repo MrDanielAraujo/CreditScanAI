@@ -4,6 +4,7 @@ import { DataGrid } from '../components/common/DataGrid/DataGrid'
 import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { Drawer } from '../components/common/Drawer'
 import { TrashIcon } from '../components/common/icons'
+import { TagIcon } from '../components/common/navIcons'
 import { accountSubtypesApi, accountTypesApi, chartOfAccountsApi, standardAccountsApi } from '../services/registrationsApi'
 import type {
   AccountSubtype,
@@ -136,7 +137,10 @@ export function StandardAccountsPage() {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Contas</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold">
+            <TagIcon className="h-6 w-6" />
+            Contas
+          </h1>
           <p className="mt-2 text-neutral">Ex: Caixa e Equivalentes de Caixa, Fornecedores. Tipo e Subtipo precisam ser compatíveis.</p>
         </div>
         <Button onClick={openCreateDrawer}>Nova Conta</Button>

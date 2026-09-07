@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button } from '../components/common/Button'
+import { HomeIcon } from '../components/common/navIcons'
 import { FinancialValueGrid } from '../components/financial/FinancialValueGrid'
 import { BALANCO_VALUES, DRE_VALUES, formatFinancialValue, INDICADORES } from '../components/financial/financialValueDefinitions'
 import { calculationsApi } from '../services/calculationsApi'
@@ -84,7 +85,10 @@ export function DashboardPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Dashboard</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-semibold">
+        <HomeIcon className="h-6 w-6" />
+        Dashboard
+      </h1>
       <p className="mt-2 text-neutral">Totais do plano de contas e indicadores financeiros por empresa e período.</p>
 
       <div className="mt-4 flex flex-wrap items-end gap-3">

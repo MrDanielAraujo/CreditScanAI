@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ShieldIcon } from '../components/common/navIcons'
 import { authApi } from '../services/authApi'
 import type { LoginAuditEntry } from '../types/auth'
 
@@ -21,7 +22,10 @@ export function LoginAuditPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Auditoria de Login</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-semibold">
+        <ShieldIcon className="h-6 w-6" />
+        Auditoria de Login
+      </h1>
       <p className="mt-2 text-neutral">Tentativas de login recentes, com sucesso ou falha. Só Admin e Compliance têm acesso.</p>
 
       {loading && <p className="mt-6 text-sm text-neutral">Carregando...</p>}

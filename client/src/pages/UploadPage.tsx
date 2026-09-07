@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '../components/common/Button'
+import { UploadIcon } from '../components/common/navIcons'
 import { Dropzone } from '../components/documents/Dropzone'
 import { ProcessingStatus } from '../components/documents/ProcessingStatus'
 import { ResultView } from '../components/documents/ResultView'
@@ -95,7 +96,10 @@ export function UploadPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Upload de Documento</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-semibold">
+        <UploadIcon className="h-6 w-6" />
+        Upload de Documento
+      </h1>
       <p className="mt-2 text-neutral">
         Envie um balanço patrimonial, DRE, ou um PDF com os dois - o sistema identifica sozinho.
       </p>

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { useAuth } from '../../contexts/authContextValue'
 import {
   BookIcon,
   BookmarkIcon,
@@ -17,7 +16,8 @@ import {
   TagIcon,
   UploadIcon,
   UsersIcon,
-} from './navIcons'
+} from '../common/navIcons'
+import { useAuth } from '../../contexts/authContextValue'
 
 const CADASTROS_OPEN_KEY = 'creditscanai_sidebar_cadastros_open'
 

@@ -4,6 +4,7 @@ import { DataGrid } from '../components/common/DataGrid/DataGrid'
 import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { Drawer } from '../components/common/Drawer'
 import { TrashIcon } from '../components/common/icons'
+import { BookmarkIcon } from '../components/common/navIcons'
 import { accountSubtypesApi, accountTypesApi } from '../services/registrationsApi'
 import type { AccountSubtype, AccountType, UpsertAccountSubtypeRequest } from '../types/registrations'
 
@@ -112,7 +113,10 @@ export function AccountSubtypesPage() {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Subtipos de Conta</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold">
+            <BookmarkIcon className="h-6 w-6" />
+            Subtipos de Conta
+          </h1>
           <p className="mt-2 text-neutral">
             Ex: Circulante, Não Circulante. Ao criar, a compatibilidade com o Tipo escolhido é registrada automaticamente.
           </p>
