@@ -101,7 +101,7 @@ export function DashboardPage() {
             <select
               value={companyId}
               onChange={(e) => setCompanyId(e.target.value)}
-              className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+              className="mt-1 w-full h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
             >
               <option value="">Selecione...</option>
               {companies.map((c) => (
@@ -118,7 +118,7 @@ export function DashboardPage() {
               value={periodId}
               onChange={(e) => setPeriodId(e.target.value)}
               disabled={periods.length === 0}
-              className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+              className="mt-1 w-full h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
             >
               <option value="">{periods.length === 0 ? 'Sem períodos' : 'Selecione...'}</option>
               {periods.map((p) => (

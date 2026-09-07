@@ -115,7 +115,7 @@ export function UploadPage() {
               value={cnpj}
               onChange={(event) => setCnpj(formatCnpj(event.target.value))}
               placeholder="00.000.000/0000-00"
-              className="w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+              className="w-full h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
             />
             <p className="mt-1 text-xs text-neutral">
               Se ainda não existir uma empresa com esse CNPJ, ela será cadastrada automaticamente.

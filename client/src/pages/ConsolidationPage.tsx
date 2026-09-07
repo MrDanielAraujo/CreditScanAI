@@ -111,7 +111,7 @@ export function ConsolidationPage() {
               value={periodId}
               onChange={(e) => setPeriodId(e.target.value)}
               disabled={periods.length === 0}
-              className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+              className="mt-1 w-full h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
             >
               <option value="">{periods.length === 0 ? 'Selecione 2+ empresas' : 'Selecione...'}</option>
               {periods.map((p) => (

@@ -47,7 +47,7 @@ export function LoginPage() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+          className="mt-1 w-full h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
         />
 
         <label className="mt-4 block text-sm font-medium">Senha</label>
@@ -56,7 +56,7 @@ export function LoginPage() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+          className="mt-1 w-full h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
         />
 
         {error && <p className="mt-3 text-sm text-error">{error}</p>}

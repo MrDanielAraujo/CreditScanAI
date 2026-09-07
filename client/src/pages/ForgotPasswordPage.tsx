@@ -36,7 +36,7 @@ export function ForgotPasswordPage() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+          className="mt-1 w-full h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
         />
 
         {message && <p className="mt-3 text-sm text-success">{message}</p>}

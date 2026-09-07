@@ -142,26 +142,26 @@ export function AccountTypesPage() {
             placeholder="Código"
             value={form.code}
             onChange={(e) => setForm({ ...form, code: e.target.value })}
-            className="rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            className="h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
           />
           <input
             placeholder="Nome"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            className="h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
           />
           <input
             placeholder="Descrição"
             value={form.description ?? ''}
             onChange={(e) => setForm({ ...form, description: e.target.value || null })}
-            className="col-span-2 rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            className="col-span-2 h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
           />
           <input
             placeholder="Ordem"
             type="number"
             value={form.sequenceOrder ?? ''}
             onChange={(e) => setForm({ ...form, sequenceOrder: e.target.value ? Number(e.target.value) : null })}
-            className="rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            className="h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
           />
         </div>
       </Drawer>

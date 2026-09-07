@@ -38,7 +38,7 @@ export function RegisterPage() {
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+          className="mt-1 w-full h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
         />
 
         <label className="mt-4 block text-sm font-medium">Email</label>
@@ -47,7 +47,7 @@ export function RegisterPage() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+          className="mt-1 w-full h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
         />
 
         <label className="mt-4 block text-sm font-medium">Senha</label>
@@ -57,7 +57,7 @@ export function RegisterPage() {
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+          className="mt-1 w-full h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
         />
         <p className="mt-1 text-xs text-neutral">Mínimo de 8 caracteres.</p>
 

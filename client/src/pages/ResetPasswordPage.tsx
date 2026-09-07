@@ -56,7 +56,7 @@ export function ResetPasswordPage() {
               minLength={8}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="mt-1 w-full rounded-md border border-neutral/30 px-3 py-2 text-sm"
+              className="mt-1 w-full h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
             />
             <p className="mt-1 text-xs text-neutral">Mínimo de 8 caracteres.</p>
 

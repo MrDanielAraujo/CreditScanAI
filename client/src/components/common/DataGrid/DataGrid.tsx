@@ -208,7 +208,7 @@ export function DataGrid<T>({
                 <select
                   value={grid.filters[column.key] ?? ''}
                   onChange={(e) => grid.setFilter(column.key, e.target.value)}
-                  className="w-full rounded-md border border-neutral/30 px-2 py-1 text-xs"
+                  className="h-7 w-full rounded-md border border-neutral/30 px-2 py-1 text-xs"
                 >
                   <option value="">Todos</option>
                   {column.filterOptions.map((option) => (
@@ -223,7 +223,7 @@ export function DataGrid<T>({
                   placeholder="Filtrar..."
                   value={grid.filters[column.key] ?? ''}
                   onChange={(e) => grid.setFilter(column.key, e.target.value)}
-                  className="w-full rounded-md border border-neutral/30 px-2 py-1 text-xs"
+                  className="h-7 w-full rounded-md border border-neutral/30 px-2 py-1 text-xs"
                 />
               ))}
           </th>
@@ -360,7 +360,7 @@ export function DataGrid<T>({
                 aria-label="Agrupar por"
                 value={grid.groupByKey ?? ''}
                 onChange={(e) => grid.setGroupByKey(e.target.value || null)}
-                className="rounded-md border border-neutral/30 px-2 py-1 text-sm"
+                className="h-8 rounded-md border border-neutral/30 px-2 py-1 text-sm"
               >
                 <option value="">Nenhum</option>
                 {groupableColumns.map((c) => (
@@ -377,7 +377,7 @@ export function DataGrid<T>({
           <button
             type="button"
             onClick={() => setColumnChooserOpen((v) => !v)}
-            className="rounded-md border border-neutral/30 px-3 py-1 text-sm hover:bg-neutral/10"
+            className="h-8 rounded-md border border-neutral/30 px-3 py-1 text-sm hover:bg-neutral/10"
           >
             Colunas
           </button>

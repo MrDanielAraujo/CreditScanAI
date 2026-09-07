@@ -106,7 +106,7 @@ export function UsersManagementPage() {
         <select
           value={row.role}
           onChange={(e) => handleRoleChange(row.id, e.target.value as UserRole)}
-          className="rounded-md border border-neutral/30 px-2 py-1 text-sm"
+          className="h-8 rounded-md border border-neutral/30 px-2 py-1 text-sm"
         >
           {ROLES.map((role) => (
             <option key={role} value={role}>
@@ -160,7 +160,7 @@ export function UsersManagementPage() {
                 placeholder="Nova senha"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="rounded-md border border-neutral/30 px-2 py-1 text-sm"
+                className="h-8 rounded-md border border-neutral/30 px-2 py-1 text-sm"
               />
               <Button size="small" onClick={() => handleResetPassword(row.id)} disabled={newPassword.length < 8}>
                 Confirmar
@@ -220,25 +220,25 @@ export function UsersManagementPage() {
             type="email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            className="h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
           />
           <input
             placeholder="Nome"
             value={form.name ?? ''}
             onChange={(e) => setForm({ ...form, name: e.target.value || null })}
-            className="rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            className="h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
           />
           <input
             placeholder="Senha (mínimo 8 caracteres)"
             type="password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
-            className="rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            className="h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
           />
           <select
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })}
-            className="rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            className="h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
           >
             {ROLES.map((role) => (
               <option key={role} value={role}>

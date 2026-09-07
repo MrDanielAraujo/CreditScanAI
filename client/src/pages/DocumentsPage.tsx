@@ -157,7 +157,7 @@ export function DocumentsPage() {
         <select
           value={companyId}
           onChange={(e) => setCompanyId(e.target.value)}
-          className="w-full max-w-xs rounded-md border border-neutral/30 px-3 py-2 text-sm"
+          className="w-full max-w-xs h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
         >
           <option value="">Todas as empresas</option>
           {companies.map((c) => (
@@ -172,7 +172,7 @@ export function DocumentsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por nome do arquivo..."
-          className="w-full max-w-xs rounded-md border border-neutral/30 px-3 py-2 text-sm"
+          className="w-full max-w-xs h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
         />
       </div>
 

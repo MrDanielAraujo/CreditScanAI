@@ -158,7 +158,7 @@ export function ReviewPage() {
         <select
           value={companyId}
           onChange={(e) => setCompanyId(e.target.value)}
-          className="w-full max-w-xs rounded-md border border-neutral/30 px-3 py-2 text-sm"
+          className="w-full max-w-xs h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
         >
           <option value="">Todas as empresas</option>
           {companies.map((c) => (
@@ -232,7 +232,7 @@ export function ReviewPage() {
             <select
               value={overrideAccountId}
               onChange={(e) => setOverrideAccountId(e.target.value)}
-              className="mt-1 w-full max-w-md rounded-md border border-neutral/30 px-3 py-2 text-sm"
+              className="mt-1 w-full max-w-md h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
             >
               <option value="">Selecione uma conta padrão...</option>
               {standardAccounts.map((a) => (

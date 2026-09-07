@@ -188,7 +188,7 @@ export function StandardAccountsPage() {
           <select
             value={form.chartOfAccountsId}
             onChange={(e) => setForm({ ...form, chartOfAccountsId: e.target.value })}
-            className="col-span-2 rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            className="col-span-2 h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
           >
             {charts.map((c) => (
               <option key={c.id} value={c.id}>
@@ -200,7 +200,7 @@ export function StandardAccountsPage() {
           <select
             value={form.accountTypeId}
             onChange={(e) => setForm({ ...form, accountTypeId: e.target.value })}
-            className="rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            className="h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
           >
             {types.map((t) => (
               <option key={t.id} value={t.id}>
@@ -211,7 +211,7 @@ export function StandardAccountsPage() {
           <select
             value={form.accountSubtypeId}
             onChange={(e) => setForm({ ...form, accountSubtypeId: e.target.value })}
-            className="rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            className="h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
           >
             {subtypes.map((s) => (
               <option key={s.id} value={s.id}>
@@ -223,19 +223,19 @@ export function StandardAccountsPage() {
             placeholder="Código"
             value={form.code}
             onChange={(e) => setForm({ ...form, code: e.target.value })}
-            className="rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            className="h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
           />
           <input
             placeholder="Nome"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            className="h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
           />
           <input
             placeholder="Descrição"
             value={form.description ?? ''}
             onChange={(e) => setForm({ ...form, description: e.target.value || null })}
-            className="col-span-2 rounded-md border border-neutral/30 px-3 py-2 text-sm"
+            className="col-span-2 h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
           />
         </div>
       </Drawer>
