@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { DataGrid } from '../components/common/DataGrid/DataGrid'
+import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { ShieldIcon } from '../components/common/navIcons'
 import { authApi } from '../services/authApi'
 import type { LoginAuditEntry } from '../types/auth'
@@ -6,6 +8,8 @@ import type { LoginAuditEntry } from '../types/auth'
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString('pt-BR')
 }
+
+const STATUS_OPTIONS = ['Sucesso', 'Falha']
 
 export function LoginAuditPage() {
   const [entries, setEntries] = useState<LoginAuditEntry[]>([])
@@ -20,50 +24,39 @@ export function LoginAuditPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  const columns: DataGridColumn<LoginAuditEntry>[] = [
+    { key: 'email', label: 'Email' },
+    {
+      key: 'status',
+      label: 'Status',
+      filterOptions: STATUS_OPTIONS,
+      getValue: (row) => (row.success ? 'Sucesso' : 'Falha'),
+      render: (row) => <span className={row.success ? 'text-success' : 'text-error'}>{row.success ? 'Sucesso' : 'Falha'}</span>,
+    },
+    { key: 'failureReason', label: 'Motivo da falha', getValue: (row) => row.failureReason ?? '—' },
+    { key: 'ipAddress', label: 'IP', getValue: (row) => row.ipAddress ?? '—' },
+    { key: 'attemptedAt', label: 'Data/Hora', getValue: (row) => formatDate(row.attemptedAt) },
+  ]
+
   return (
-    <div>
+    <div className="flex h-full flex-col">
       <h1 className="flex items-center gap-2 text-2xl font-semibold">
         <ShieldIcon className="h-6 w-6" />
         Auditoria de Login
       </h1>
       <p className="mt-2 text-neutral">Tentativas de login recentes, com sucesso ou falha. Só Admin e Compliance têm acesso.</p>
 
-      {loading && <p className="mt-6 text-sm text-neutral">Carregando...</p>}
-      {error && <p className="mt-6 text-sm text-error">{error}</p>}
+      {error && <p className="mt-3 text-sm text-error">{error}</p>}
 
-      {!loading && !error && (
-        <table className="mt-6 w-full max-w-3xl border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-neutral/20 bg-surface-muted text-left">
-              <th className="p-2">Email</th>
-              <th className="p-2">Status</th>
-              <th className="p-2">Motivo da falha</th>
-              <th className="p-2">IP</th>
-              <th className="p-2">Data/Hora</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.length === 0 && (
-              <tr>
-                <td className="p-2 text-neutral" colSpan={5}>
-                  Nenhuma tentativa de login registrada ainda.
-                </td>
-              </tr>
-            )}
-            {entries.map((entry) => (
-              <tr key={entry.id} className="border-b border-neutral/10">
-                <td className="p-2">{entry.email}</td>
-                <td className={['p-2', entry.success ? 'text-success' : 'text-error'].join(' ')}>
-                  {entry.success ? 'Sucesso' : 'Falha'}
-                </td>
-                <td className="p-2 text-neutral">{entry.failureReason ?? '—'}</td>
-                <td className="p-2 text-neutral">{entry.ipAddress ?? '—'}</td>
-                <td className="p-2 text-neutral">{formatDate(entry.attemptedAt)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <div className="mt-6 min-h-0 flex-1 pb-[10px]">
+        <DataGrid
+          columns={columns}
+          data={entries}
+          rowKey={(entry) => entry.id}
+          loading={loading}
+          emptyMessage="Nenhuma tentativa de login registrada ainda."
+        />
+      </div>
     </div>
   )
 }
