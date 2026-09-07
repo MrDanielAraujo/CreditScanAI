@@ -232,6 +232,19 @@ public class DocumentsController : ControllerBase
             new UploadDocumentResponse(documentId, document.ExtractionStatus.ToString(), company.Id, companyCreated)));
     }
 
+    [HttpGet("{id:guid}/download")]
+    public async Task<IActionResult> Download(Guid id, CancellationToken cancellationToken)
+    {
+        var document = await _db.Documents.FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
+        if (document is null)
+        {
+            return NotFound(ApiResponse<object>.Fail("NOT_FOUND", "Documento não encontrado."));
+        }
+
+        var bytes = await _storage.ReadAsync(document.FilePath, cancellationToken);
+        return File(bytes, "application/pdf", document.FileName);
+    }
+
     [HttpGet("{id:guid}/status")]
     public async Task<ActionResult<ApiResponse<DocumentStatusResponse>>> GetStatus(Guid id, CancellationToken cancellationToken)
     {

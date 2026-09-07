@@ -3,8 +3,9 @@ import { Button } from '../components/common/Button'
 import { DataGrid } from '../components/common/DataGrid/DataGrid'
 import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { Drawer } from '../components/common/Drawer'
+import { DownloadIcon } from '../components/common/icons'
 import { FileIcon } from '../components/common/navIcons'
-import { listCompanies, listDocuments, reprocessDocument } from '../services/documentsApi'
+import { downloadDocument, listCompanies, listDocuments, reprocessDocument } from '../services/documentsApi'
 import { reportsApi } from '../services/reportsApi'
 import type { Company, DocumentListItem } from '../types/documents'
 import type { QualityReport } from '../types/reports'
@@ -36,6 +37,9 @@ export function DocumentsPage() {
   const [reprocessing, setReprocessing] = useState(false)
   const [reprocessMessage, setReprocessMessage] = useState<string | null>(null)
 
+  const [downloading, setDownloading] = useState(false)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
+
   const loadDocuments = () => {
     setListLoading(true)
     setListError(null)
@@ -62,6 +66,7 @@ export function DocumentsPage() {
     setReport(null)
     setReportError(null)
     setReprocessMessage(null)
+    setDownloadError(null)
     setReportLoading(true)
 
     reportsApi
@@ -86,6 +91,19 @@ export function DocumentsPage() {
     { key: 'extractionStatus', label: 'Extração', filterOptions: extractionStatusOptions },
     { key: 'classificationStatus', label: 'Classificação', filterOptions: classificationStatusOptions },
   ]
+
+  const handleDownload = async () => {
+    if (!selectedId || !report) return
+    setDownloading(true)
+    setDownloadError(null)
+    try {
+      await downloadDocument(selectedId, report.fileName)
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : 'Erro ao baixar documento')
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   const handleReprocess = async () => {
     if (!selectedId) return
@@ -155,9 +173,15 @@ export function DocumentsPage() {
         footer={
           !reportLoading &&
           report && (
-            <Button onClick={handleReprocess} loading={reprocessing}>
-              Reprocessar Classificação
-            </Button>
+            <>
+              <Button variant="secondary" onClick={handleDownload} loading={downloading}>
+                <DownloadIcon />
+                Baixar Documento
+              </Button>
+              <Button onClick={handleReprocess} loading={reprocessing}>
+                Reprocessar Classificação
+              </Button>
+            </>
           )
         }
       >
@@ -198,6 +222,7 @@ export function DocumentsPage() {
             </div>
 
             {reprocessMessage && <p className="mt-4 text-sm text-neutral">{reprocessMessage}</p>}
+            {downloadError && <p className="mt-4 text-sm text-error">{downloadError}</p>}
           </div>
         )}
       </Drawer>

@@ -1,4 +1,4 @@
-import { apiGet, apiPost, API_BASE_URL } from './apiClient'
+import { apiDownload, apiGet, apiPost, API_BASE_URL } from './apiClient'
 import { getStoredToken, handleUnauthorized } from './authStorage'
 import type {
   Company,
@@ -66,4 +66,8 @@ export async function listDocuments(params: ListDocumentsParams = {}): Promise<D
 
 export async function reprocessDocument(documentId: string): Promise<ReprocessDocumentResponse> {
   return apiPost<ReprocessDocumentResponse>(`/api/documents/${documentId}/reprocess`)
+}
+
+export async function downloadDocument(documentId: string, fileName: string): Promise<void> {
+  return apiDownload(`/api/documents/${documentId}/download`, fileName)
 }
