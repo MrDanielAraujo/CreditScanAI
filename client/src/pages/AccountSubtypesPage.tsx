@@ -19,6 +19,8 @@ export function AccountSubtypesPage() {
   const [form, setForm] = useState<UpsertAccountSubtypeRequest>(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [compatibleTypeIds, setCompatibleTypeIds] = useState<string[]>([])
+  const [togglingTypeId, setTogglingTypeId] = useState<string | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -39,6 +41,7 @@ export function AccountSubtypesPage() {
   const openCreateDrawer = () => {
     setEditingId(null)
     setForm({ ...emptyForm, accountTypeId: form.accountTypeId })
+    setCompatibleTypeIds([])
     setDrawerOpen(true)
   }
 
@@ -51,7 +54,30 @@ export function AccountSubtypesPage() {
       description: item.description,
       sequenceOrder: item.sequenceOrder,
     })
+    setCompatibleTypeIds([])
     setDrawerOpen(true)
+    accountSubtypesApi
+      .getCompatibleTypes(item.id)
+      .then(setCompatibleTypeIds)
+      .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao carregar Tipos compatíveis', 'error'))
+  }
+
+  const handleToggleCompatibleType = async (accountTypeId: string, currentlyCompatible: boolean) => {
+    if (!editingId) return
+    setTogglingTypeId(accountTypeId)
+    try {
+      if (currentlyCompatible) {
+        await accountSubtypesApi.removeCompatibleType(editingId, accountTypeId)
+        setCompatibleTypeIds((prev) => prev.filter((id) => id !== accountTypeId))
+      } else {
+        await accountSubtypesApi.addCompatibleType(editingId, accountTypeId)
+        setCompatibleTypeIds((prev) => [...prev, accountTypeId])
+      }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Erro ao alterar compatibilidade', 'error')
+    } finally {
+      setTogglingTypeId(null)
+    }
   }
 
   const handleSubmit = async () => {
@@ -117,7 +143,8 @@ export function AccountSubtypesPage() {
             Subtipos de Conta
           </h1>
           <p className="mt-2 text-neutral">
-            Ex: Circulante, Não Circulante. Ao criar, a compatibilidade com o Tipo escolhido é registrada automaticamente.
+            Ex: Circulante, Não Circulante. Ao criar, a compatibilidade com o Tipo escolhido é registrada automaticamente - para
+            liberar o mesmo Subtipo em outros Tipos (ex: Circulante em Ativo e Passivo), edite o Subtipo já criado.
           </p>
         </div>
         <Button onClick={openCreateDrawer}>Novo Subtipo</Button>
@@ -180,6 +207,33 @@ export function AccountSubtypesPage() {
             className="col-span-2 h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
           />
         </div>
+
+        {editingId && (
+          <div className="mt-6 max-w-2xl">
+            <label className="block text-xs font-semibold uppercase text-neutral">Tipos compatíveis</label>
+            <p className="mt-1 text-xs text-neutral">
+              Além do Tipo principal, marque outros Tipos que também podem usar este Subtipo (ex: Circulante em Ativo e Passivo).
+            </p>
+            <div className="mt-2 flex flex-col gap-1">
+              {types.map((t) => {
+                const isPrimary = t.id === form.accountTypeId
+                const isCompatible = isPrimary || compatibleTypeIds.includes(t.id)
+                return (
+                  <label key={t.id} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={isCompatible}
+                      disabled={isPrimary || togglingTypeId === t.id}
+                      onChange={() => handleToggleCompatibleType(t.id, isCompatible)}
+                    />
+                    {t.name}
+                    {isPrimary && <span className="text-xs text-neutral">(principal)</span>}
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </Drawer>
     </div>
   )

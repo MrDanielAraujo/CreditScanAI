@@ -142,6 +142,105 @@ public class AccountSubtypesController : ControllerBase
         return Ok(ApiResponse<AccountSubtypeDto>.Ok(ToDto(entity)));
     }
 
+    /// <summary>
+    /// Um Subtipo (ex: Circulante) pode ser usado por mais de um Tipo (Ativo E
+    /// Passivo) - o Tipo com que ele foi criado é sempre compatível (concedido
+    /// automaticamente em Create), e essa lista mostra todos os Tipos
+    /// liberados, principal incluso, pra a tela decidir quais checkboxes
+    /// vêm marcadas.
+    /// </summary>
+    [HttpGet("{id:guid}/compatible-types")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<Guid>>>> GetCompatibleTypes(Guid id, CancellationToken cancellationToken)
+    {
+        var entity = await _db.AccountSubtypes.FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound(ApiResponse<object>.Fail("NOT_FOUND", "Subtipo não encontrado."));
+        }
+
+        var typeIds = await _db.TypeSubtypeCompatibilities
+            .Where(c => c.AccountSubtypeId == id && c.IsAllowed)
+            .Select(c => c.AccountTypeId)
+            .ToListAsync(cancellationToken);
+
+        return Ok(ApiResponse<IReadOnlyList<Guid>>.Ok(typeIds));
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
+    [HttpPost("{id:guid}/compatible-types")]
+    public async Task<ActionResult<ApiResponse<object>>> AddCompatibleType(
+        Guid id, AddCompatibleTypeRequest request, CancellationToken cancellationToken)
+    {
+        var entity = await _db.AccountSubtypes.FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound(ApiResponse<object>.Fail("NOT_FOUND", "Subtipo não encontrado."));
+        }
+
+        var accountType = await _db.AccountTypes.FirstOrDefaultAsync(
+            t => t.Id == request.AccountTypeId && t.TenantId == entity.TenantId, cancellationToken);
+        if (accountType is null)
+        {
+            return BadRequest(ApiResponse<object>.Fail("INVALID_REQUEST", "account_type_id não corresponde a nenhum Tipo cadastrado."));
+        }
+
+        var alreadyCompatible = await _db.TypeSubtypeCompatibilities.AnyAsync(
+            c => c.AccountSubtypeId == id && c.AccountTypeId == request.AccountTypeId, cancellationToken);
+        if (alreadyCompatible)
+        {
+            return Conflict(ApiResponse<object>.Fail("CONFLICT", "Esse Subtipo já é compatível com esse Tipo."));
+        }
+
+        _db.TypeSubtypeCompatibilities.Add(new TypeSubtypeCompatibility
+        {
+            Id = Guid.NewGuid(),
+            TenantId = entity.TenantId,
+            AccountTypeId = request.AccountTypeId,
+            AccountSubtypeId = id,
+            IsAllowed = true
+        });
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
+    [HttpDelete("{id:guid}/compatible-types/{accountTypeId:guid}")]
+    public async Task<ActionResult<ApiResponse<object>>> RemoveCompatibleType(
+        Guid id, Guid accountTypeId, CancellationToken cancellationToken)
+    {
+        var entity = await _db.AccountSubtypes.FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound(ApiResponse<object>.Fail("NOT_FOUND", "Subtipo não encontrado."));
+        }
+
+        if (entity.AccountTypeId == accountTypeId)
+        {
+            return Conflict(ApiResponse<object>.Fail("CONFLICT", "Não é possível remover o Tipo principal deste Subtipo."));
+        }
+
+        var inUse = await _db.StandardAccounts.AnyAsync(
+            s => s.AccountSubtypeId == id && s.AccountTypeId == accountTypeId, cancellationToken);
+        if (inUse)
+        {
+            return Conflict(ApiResponse<object>.Fail(
+                "CONFLICT", "Este Subtipo está em uso por Contas com esse Tipo e não pode perder a compatibilidade."));
+        }
+
+        var compatibility = await _db.TypeSubtypeCompatibilities.FirstOrDefaultAsync(
+            c => c.AccountSubtypeId == id && c.AccountTypeId == accountTypeId, cancellationToken);
+        if (compatibility is null)
+        {
+            return NotFound(ApiResponse<object>.Fail("NOT_FOUND", "Compatibilidade não encontrada."));
+        }
+
+        _db.TypeSubtypeCompatibilities.Remove(compatibility);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
     [Authorize(Policy = AuthorizationPolicies.CanAdmin)]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult<ApiResponse<object>>> Delete(Guid id, CancellationToken cancellationToken)

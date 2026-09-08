@@ -22,6 +22,11 @@ export const accountSubtypesApi = {
   create: (req: UpsertAccountSubtypeRequest) => apiPost<AccountSubtype>('/api/account-subtypes', req),
   update: (id: string, req: UpsertAccountSubtypeRequest) => apiPut<AccountSubtype>(`/api/account-subtypes/${id}`, req),
   remove: (id: string) => apiDelete<object>(`/api/account-subtypes/${id}`),
+  getCompatibleTypes: (id: string) => apiGet<string[]>(`/api/account-subtypes/${id}/compatible-types`),
+  addCompatibleType: (id: string, accountTypeId: string) =>
+    apiPost<object>(`/api/account-subtypes/${id}/compatible-types`, { accountTypeId }),
+  removeCompatibleType: (id: string, accountTypeId: string) =>
+    apiDelete<object>(`/api/account-subtypes/${id}/compatible-types/${accountTypeId}`),
 }
 
 export const chartOfAccountsApi = {
