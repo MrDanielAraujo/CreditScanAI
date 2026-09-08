@@ -6,6 +6,7 @@ import { EquationBanner } from '../components/financial/EquationBanner'
 import { ExportButtons } from '../components/financial/ExportButtons'
 import { FinancialValueGrid } from '../components/financial/FinancialValueGrid'
 import { BALANCO_VALUES, DRE_VALUES, INDICADORES } from '../components/financial/financialValueDefinitions'
+import { useToast } from '../contexts/toastContextValue'
 import { calculationsApi } from '../services/calculationsApi'
 import { listCompanies } from '../services/documentsApi'
 import { reportsApi } from '../services/reportsApi'
@@ -17,6 +18,7 @@ function periodLabel(period: Period): string {
 }
 
 export function DashboardPage() {
+  const { showToast } = useToast()
   const [companies, setCompanies] = useState<Company[]>([])
   const [companyId, setCompanyId] = useState('')
 
@@ -26,9 +28,7 @@ export function DashboardPage() {
   const [result, setResult] = useState<CalculationResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [calculating, setCalculating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [notCalculatedYet, setNotCalculatedYet] = useState(false)
-  const [exportError, setExportError] = useState<string | null>(null)
 
   useEffect(() => {
     listCompanies()
@@ -45,8 +45,8 @@ export function DashboardPage() {
     calculationsApi
       .listPeriods(companyId)
       .then(setPeriods)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar períodos'))
-  }, [companyId])
+      .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao carregar períodos', 'error'))
+  }, [companyId, showToast])
 
   useEffect(() => {
     setResult(null)
@@ -54,7 +54,6 @@ export function DashboardPage() {
     if (!companyId || !periodId) return
 
     setLoading(true)
-    setError(null)
     calculationsApi
       .getResults(companyId, periodId)
       .then(setResult)
@@ -63,24 +62,22 @@ export function DashboardPage() {
   }, [companyId, periodId])
 
   const handleExport = async (format: 'pdf' | 'xlsx') => {
-    setExportError(null)
     try {
       await reportsApi.exportCompanyStatement(companyId, periodId, format)
     } catch (err) {
-      setExportError(err instanceof Error ? err.message : 'Erro ao exportar')
+      showToast(err instanceof Error ? err.message : 'Erro ao exportar', 'error')
     }
   }
 
   const handleCalculate = async () => {
     if (!companyId || !periodId) return
     setCalculating(true)
-    setError(null)
     try {
       const calculated = await calculationsApi.calculate(companyId, periodId)
       setResult(calculated)
       setNotCalculatedYet(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao calcular')
+      showToast(err instanceof Error ? err.message : 'Erro ao calcular', 'error')
     } finally {
       setCalculating(false)
     }
@@ -135,7 +132,6 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {error && <p className="mt-3 text-sm text-error">{error}</p>}
       {loading && <p className="mt-6 text-sm text-neutral">Carregando...</p>}
       {!loading && notCalculatedYet && (
         <p className="mt-6 text-sm text-neutral">Ainda não há cálculo para esta empresa/período - clique em Calcular.</p>
@@ -147,8 +143,6 @@ export function DashboardPage() {
             <EquationBanner balanced={result.equationBalanced} variance={result.equationVariance} />
             <ExportButtons onExportPdf={() => handleExport('pdf')} onExportExcel={() => handleExport('xlsx')} />
           </div>
-
-          {exportError && <p className="mt-2 text-sm text-error">{exportError}</p>}
 
           <FinancialValueGrid title="Balanço" definitions={BALANCO_VALUES} values={result.values} icon={ScaleIcon} accent="blue" />
           <FinancialValueGrid title="DRE" definitions={DRE_VALUES} values={result.values} icon={LayersIcon} accent="violet" />

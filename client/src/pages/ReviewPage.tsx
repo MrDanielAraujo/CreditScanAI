@@ -4,6 +4,7 @@ import { DataGrid } from '../components/common/DataGrid/DataGrid'
 import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { Drawer } from '../components/common/Drawer'
 import { CheckSquareIcon } from '../components/common/navIcons'
+import { useToast } from '../contexts/toastContextValue'
 import { classificationsApi } from '../services/classificationsApi'
 import { listCompanies } from '../services/documentsApi'
 import { standardAccountsApi } from '../services/registrationsApi'
@@ -12,6 +13,7 @@ import type { Company } from '../types/documents'
 import type { StandardAccount } from '../types/registrations'
 
 export function ReviewPage() {
+  const { showToast } = useToast()
   const [companies, setCompanies] = useState<Company[]>([])
   const [companyId, setCompanyId] = useState('')
   const [showAll, setShowAll] = useState(false)
@@ -19,7 +21,6 @@ export function ReviewPage() {
   const [items, setItems] = useState<PendingClassification[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [listLoading, setListLoading] = useState(true)
-  const [listError, setListError] = useState<string | null>(null)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -30,18 +31,16 @@ export function ReviewPage() {
   const [reason, setReason] = useState('')
 
   const [actionLoading, setActionLoading] = useState(false)
-  const [actionError, setActionError] = useState<string | null>(null)
 
   const loadPending = () => {
     setListLoading(true)
-    setListError(null)
     classificationsApi
       .listPending({ companyId: companyId || undefined, status: showAll ? 'all' : 'needs_review', limit: 100 })
       .then((res) => {
         setItems(res.items)
         setTotalCount(res.totalCount)
       })
-      .catch((err) => setListError(err instanceof Error ? err.message : 'Erro ao carregar a fila'))
+      .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao carregar a fila', 'error'))
       .finally(() => setListLoading(false))
   }
 
@@ -51,7 +50,7 @@ export function ReviewPage() {
       .catch(() => setCompanies([]))
   }, [])
 
-  useEffect(loadPending, [companyId, showAll])
+  useEffect(loadPending, [companyId, showAll, showToast])
 
   const selectItem = (classificationId: string) => {
     setSelectedId(classificationId)
@@ -60,7 +59,6 @@ export function ReviewPage() {
     setStandardAccounts([])
     setOverrideAccountId('')
     setReason('')
-    setActionError(null)
     setDetailLoading(true)
 
     classificationsApi
@@ -70,7 +68,7 @@ export function ReviewPage() {
         return standardAccountsApi.list(d.chartOfAccountsId)
       })
       .then((accounts) => setStandardAccounts(accounts))
-      .catch((err) => setActionError(err instanceof Error ? err.message : 'Erro ao carregar o detalhe'))
+      .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao carregar o detalhe', 'error'))
       .finally(() => setDetailLoading(false))
   }
 
@@ -84,12 +82,11 @@ export function ReviewPage() {
   const handleApprove = async () => {
     if (!detail) return
     setActionLoading(true)
-    setActionError(null)
     try {
       await classificationsApi.approve(detail.classificationId, { notes: reason || null })
       afterAction()
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Erro ao aprovar')
+      showToast(err instanceof Error ? err.message : 'Erro ao aprovar', 'error')
     } finally {
       setActionLoading(false)
     }
@@ -98,12 +95,11 @@ export function ReviewPage() {
   const handleReject = async () => {
     if (!detail) return
     setActionLoading(true)
-    setActionError(null)
     try {
       await classificationsApi.reject(detail.classificationId, { reason: reason || null })
       afterAction()
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Erro ao rejeitar')
+      showToast(err instanceof Error ? err.message : 'Erro ao rejeitar', 'error')
     } finally {
       setActionLoading(false)
     }
@@ -112,12 +108,11 @@ export function ReviewPage() {
   const handleOverride = async () => {
     if (!detail || !overrideAccountId) return
     setActionLoading(true)
-    setActionError(null)
     try {
       await classificationsApi.override(detail.classificationId, { newStandardAccountId: overrideAccountId, reason: reason || null })
       afterAction()
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Erro ao aplicar o override')
+      showToast(err instanceof Error ? err.message : 'Erro ao aplicar o override', 'error')
     } finally {
       setActionLoading(false)
     }
@@ -173,8 +168,6 @@ export function ReviewPage() {
           Mostrar todas as classificações (não só as pendentes de revisão)
         </label>
       </div>
-
-      {listError && <p className="mt-3 text-sm text-error">{listError}</p>}
 
       <p className="mb-2 mt-4 text-sm text-neutral">
         {totalCount} {showAll ? 'classificação(ões) no servidor' : 'pendente(s) no servidor'} (máx. 100 carregadas por vez)
@@ -249,8 +242,6 @@ export function ReviewPage() {
               rows={2}
               className="mt-1 w-full max-w-md rounded-md border border-neutral/30 px-3 py-2 text-sm"
             />
-
-            {actionError && <p className="mt-3 text-sm text-error">{actionError}</p>}
           </div>
         )}
       </Drawer>

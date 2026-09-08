@@ -6,6 +6,7 @@ import { EquationBanner } from '../components/financial/EquationBanner'
 import { ExportButtons } from '../components/financial/ExportButtons'
 import { FinancialValueGrid } from '../components/financial/FinancialValueGrid'
 import { BALANCO_VALUES, DRE_VALUES, INDICADORES } from '../components/financial/financialValueDefinitions'
+import { useToast } from '../contexts/toastContextValue'
 import { companiesApi } from '../services/companiesApi'
 import { consolidationApi } from '../services/consolidationApi'
 import { listCompanies } from '../services/documentsApi'
@@ -19,6 +20,7 @@ function periodLabel(period: Period): string {
 }
 
 export function ConsolidationPage() {
+  const { showToast } = useToast()
   const [companies, setCompanies] = useState<Company[]>([])
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>([])
 
@@ -27,8 +29,6 @@ export function ConsolidationPage() {
 
   const [result, setResult] = useState<ConsolidationResult | null>(null)
   const [calculating, setCalculating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [exportError, setExportError] = useState<string | null>(null)
 
   useEffect(() => {
     listCompanies()
@@ -49,8 +49,8 @@ export function ConsolidationPage() {
         const common = first.filter((p) => rest.every((others) => others.some((o) => o.id === p.id)))
         setPeriods(common)
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar períodos'))
-  }, [selectedCompanyIds])
+      .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao carregar períodos', 'error'))
+  }, [selectedCompanyIds, showToast])
 
   const toggleCompany = (id: string) => {
     setSelectedCompanyIds((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]))
@@ -59,24 +59,22 @@ export function ConsolidationPage() {
   const handleConsolidate = async () => {
     if (selectedCompanyIds.length < 2 || !periodId) return
     setCalculating(true)
-    setError(null)
     setResult(null)
     try {
       const consolidated = await consolidationApi.calculate(periodId, selectedCompanyIds)
       setResult(consolidated)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao consolidar')
+      showToast(err instanceof Error ? err.message : 'Erro ao consolidar', 'error')
     } finally {
       setCalculating(false)
     }
   }
 
   const handleExport = async (format: 'pdf' | 'xlsx') => {
-    setExportError(null)
     try {
       await reportsApi.exportConsolidatedStatement(periodId, selectedCompanyIds, format)
     } catch (err) {
-      setExportError(err instanceof Error ? err.message : 'Erro ao exportar')
+      showToast(err instanceof Error ? err.message : 'Erro ao exportar', 'error')
     }
   }
 
@@ -128,16 +126,12 @@ export function ConsolidationPage() {
         </div>
       </div>
 
-      {error && <p className="mt-3 text-sm text-error">{error}</p>}
-
       {result && (
         <div>
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
             <EquationBanner balanced={result.equationBalanced} variance={result.equationVariance} />
             <ExportButtons onExportPdf={() => handleExport('pdf')} onExportExcel={() => handleExport('xlsx')} />
           </div>
-
-          {exportError && <p className="mt-2 text-sm text-error">{exportError}</p>}
 
           <FinancialValueGrid title="Balanço Consolidado" definitions={BALANCO_VALUES} values={result.values} icon={ScaleIcon} accent="blue" />
           <FinancialValueGrid title="DRE Consolidado" definitions={DRE_VALUES} values={result.values} icon={LayersIcon} accent="violet" />

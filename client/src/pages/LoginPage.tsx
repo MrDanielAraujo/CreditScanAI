@@ -2,27 +2,27 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../components/common/Button'
 import { useAuth } from '../contexts/authContextValue'
+import { useToast } from '../contexts/toastContextValue'
 import { consumeSessionExpiredFlag } from '../services/authStorage'
 
 export function LoginPage() {
   const { login } = useAuth()
+  const { showToast } = useToast()
   const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [sessionExpired] = useState(consumeSessionExpiredFlag)
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     setLoading(true)
-    setError(null)
     try {
       await login({ email, password })
       navigate('/')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao entrar')
+      showToast(err instanceof Error ? err.message : 'Erro ao entrar', 'error')
       setPassword('')
     } finally {
       setLoading(false)
@@ -58,8 +58,6 @@ export function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           className="mt-1 w-full h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
         />
-
-        {error && <p className="mt-3 text-sm text-error">{error}</p>}
 
         <Button type="submit" className="mt-6 w-full" loading={loading}>
           Entrar

@@ -2,26 +2,26 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../components/common/Button'
 import { useAuth } from '../contexts/authContextValue'
+import { useToast } from '../contexts/toastContextValue'
 
 export function RegisterPage() {
   const { register } = useAuth()
+  const { showToast } = useToast()
   const navigate = useNavigate()
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     setLoading(true)
-    setError(null)
     try {
       await register({ email, password, name: name || null })
       navigate('/')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao cadastrar')
+      showToast(err instanceof Error ? err.message : 'Erro ao cadastrar', 'error')
     } finally {
       setLoading(false)
     }
@@ -60,8 +60,6 @@ export function RegisterPage() {
           className="mt-1 w-full h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
         />
         <p className="mt-1 text-xs text-neutral">Mínimo de 8 caracteres.</p>
-
-        {error && <p className="mt-3 text-sm text-error">{error}</p>}
 
         <Button type="submit" className="mt-6 w-full" loading={loading}>
           Cadastrar

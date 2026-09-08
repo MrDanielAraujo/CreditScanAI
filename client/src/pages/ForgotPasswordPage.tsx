@@ -1,24 +1,22 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../components/common/Button'
+import { useToast } from '../contexts/toastContextValue'
 import { authApi } from '../services/authApi'
 
 export function ForgotPasswordPage() {
+  const { showToast } = useToast()
   const [email, setEmail] = useState('')
-  const [message, setMessage] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     setLoading(true)
-    setError(null)
-    setMessage(null)
     try {
       const res = await authApi.forgotPassword({ email })
-      setMessage(res.message)
+      showToast(res.message, 'success')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao solicitar redefinição')
+      showToast(err instanceof Error ? err.message : 'Erro ao solicitar redefinição', 'error')
     } finally {
       setLoading(false)
     }
@@ -38,9 +36,6 @@ export function ForgotPasswordPage() {
           onChange={(e) => setEmail(e.target.value)}
           className="mt-1 w-full h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
         />
-
-        {message && <p className="mt-3 text-sm text-success">{message}</p>}
-        {error && <p className="mt-3 text-sm text-error">{error}</p>}
 
         <Button type="submit" className="mt-6 w-full" loading={loading}>
           Enviar link de redefinição

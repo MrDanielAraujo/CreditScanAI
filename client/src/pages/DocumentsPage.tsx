@@ -5,6 +5,7 @@ import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { Drawer } from '../components/common/Drawer'
 import { DownloadIcon } from '../components/common/icons'
 import { FileIcon } from '../components/common/navIcons'
+import { useToast } from '../contexts/toastContextValue'
 import { downloadDocument, listCompanies, listDocuments, reprocessDocument } from '../services/documentsApi'
 import { reportsApi } from '../services/reportsApi'
 import type { ClassificationStatus, Company, DocumentListItem, ExtractionStatus } from '../types/documents'
@@ -34,6 +35,7 @@ const CLASSIFICATION_STATUS_LABELS: Record<ClassificationStatus, string> = {
 }
 
 export function DocumentsPage() {
+  const { showToast } = useToast()
   const [companies, setCompanies] = useState<Company[]>([])
   const [companyId, setCompanyId] = useState('')
   const [search, setSearch] = useState('')
@@ -41,29 +43,23 @@ export function DocumentsPage() {
   const [items, setItems] = useState<DocumentListItem[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [listLoading, setListLoading] = useState(true)
-  const [listError, setListError] = useState<string | null>(null)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [report, setReport] = useState<QualityReport | null>(null)
   const [reportLoading, setReportLoading] = useState(false)
-  const [reportError, setReportError] = useState<string | null>(null)
 
   const [reprocessing, setReprocessing] = useState(false)
-  const [reprocessMessage, setReprocessMessage] = useState<string | null>(null)
-
   const [downloading, setDownloading] = useState(false)
-  const [downloadError, setDownloadError] = useState<string | null>(null)
 
   const loadDocuments = () => {
     setListLoading(true)
-    setListError(null)
     listDocuments({ companyId: companyId || undefined, search: search || undefined, limit: 100 })
       .then((res) => {
         setItems(res.items)
         setTotalCount(res.totalCount)
       })
-      .catch((err) => setListError(err instanceof Error ? err.message : 'Erro ao carregar documentos'))
+      .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao carregar documentos', 'error'))
       .finally(() => setListLoading(false))
   }
 
@@ -73,21 +69,18 @@ export function DocumentsPage() {
       .catch(() => setCompanies([]))
   }, [])
 
-  useEffect(loadDocuments, [companyId, search])
+  useEffect(loadDocuments, [companyId, search, showToast])
 
   const selectDocument = (documentId: string) => {
     setSelectedId(documentId)
     setDrawerOpen(true)
     setReport(null)
-    setReportError(null)
-    setReprocessMessage(null)
-    setDownloadError(null)
     setReportLoading(true)
 
     reportsApi
       .getQualityReport(documentId)
       .then(setReport)
-      .catch((err) => setReportError(err instanceof Error ? err.message : 'Erro ao carregar o relatório de qualidade'))
+      .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao carregar o relatório de qualidade', 'error'))
       .finally(() => setReportLoading(false))
   }
 
@@ -120,11 +113,10 @@ export function DocumentsPage() {
   const handleDownload = async () => {
     if (!selectedId || !report) return
     setDownloading(true)
-    setDownloadError(null)
     try {
       await downloadDocument(selectedId, report.fileName)
     } catch (err) {
-      setDownloadError(err instanceof Error ? err.message : 'Erro ao baixar documento')
+      showToast(err instanceof Error ? err.message : 'Erro ao baixar documento', 'error')
     } finally {
       setDownloading(false)
     }
@@ -133,13 +125,12 @@ export function DocumentsPage() {
   const handleReprocess = async () => {
     if (!selectedId) return
     setReprocessing(true)
-    setReprocessMessage(null)
     try {
       await reprocessDocument(selectedId)
-      setReprocessMessage('Reprocessamento iniciado - a classificação será refeita em segundo plano.')
+      showToast('Reprocessamento iniciado - a classificação será refeita em segundo plano.', 'success')
       loadDocuments()
     } catch (err) {
-      setReprocessMessage(err instanceof Error ? err.message : 'Erro ao reprocessar')
+      showToast(err instanceof Error ? err.message : 'Erro ao reprocessar', 'error')
     } finally {
       setReprocessing(false)
     }
@@ -176,8 +167,6 @@ export function DocumentsPage() {
         />
       </div>
 
-      {listError && <p className="mt-3 text-sm text-error">{listError}</p>}
-
       <p className="mb-2 mt-4 text-sm text-neutral">{totalCount} documento(s)</p>
       <div className="min-h-0 flex-1 pb-[10px]">
         <DataGrid
@@ -211,7 +200,6 @@ export function DocumentsPage() {
         }
       >
         {reportLoading && <p className="text-sm text-neutral">Carregando relatório...</p>}
-        {reportError && <p className="text-sm text-error">{reportError}</p>}
 
         {!reportLoading && report && (
           <div>
@@ -246,8 +234,6 @@ export function DocumentsPage() {
               </ul>
             </div>
 
-            {reprocessMessage && <p className="mt-4 text-sm text-neutral">{reprocessMessage}</p>}
-            {downloadError && <p className="mt-4 text-sm text-error">{downloadError}</p>}
           </div>
         )}
       </Drawer>

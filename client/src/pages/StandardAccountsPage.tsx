@@ -5,6 +5,7 @@ import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { Drawer } from '../components/common/Drawer'
 import { TrashIcon } from '../components/common/icons'
 import { TagIcon } from '../components/common/navIcons'
+import { useToast } from '../contexts/toastContextValue'
 import { accountSubtypesApi, accountTypesApi, chartOfAccountsApi, standardAccountsApi } from '../services/registrationsApi'
 import type {
   AccountSubtype,
@@ -19,12 +20,12 @@ function buildEmptyForm(chartId: string, typeId: string, subtypeId: string): Ups
 }
 
 export function StandardAccountsPage() {
+  const { showToast } = useToast()
   const [items, setItems] = useState<StandardAccount[]>([])
   const [charts, setCharts] = useState<ChartOfAccounts[]>([])
   const [types, setTypes] = useState<AccountType[]>([])
   const [subtypes, setSubtypes] = useState<AccountSubtype[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState<UpsertStandardAccountRequest>(buildEmptyForm('', '', ''))
   const [editingId, setEditingId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -43,11 +44,11 @@ export function StandardAccountsPage() {
             : buildEmptyForm(chartList.find((c) => c.isDefault)?.id ?? chartList[0]?.id ?? '', typeList[0]?.id ?? '', subtypeList[0]?.id ?? ''),
         )
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar'))
+      .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao carregar', 'error'))
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(load, [showToast])
 
   const chartName = (id: string) => charts.find((c) => c.id === id)?.name ?? id
   const typeName = (id: string) => types.find((t) => t.id === id)?.name ?? id
@@ -73,7 +74,6 @@ export function StandardAccountsPage() {
   }
 
   const handleSubmit = async () => {
-    setError(null)
     try {
       if (editingId) {
         await standardAccountsApi.update(editingId, form)
@@ -84,18 +84,17 @@ export function StandardAccountsPage() {
       setDrawerOpen(false)
       load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar')
+      showToast(err instanceof Error ? err.message : 'Erro ao salvar', 'error')
     }
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('Excluir esta Conta?')) return
-    setError(null)
     try {
       await standardAccountsApi.remove(id)
       load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao excluir')
+      showToast(err instanceof Error ? err.message : 'Erro ao excluir', 'error')
     }
   }
 
@@ -152,8 +151,6 @@ export function StandardAccountsPage() {
         </div>
         <Button onClick={openCreateDrawer}>Nova Conta</Button>
       </div>
-
-      {error && <p className="mt-3 text-sm text-error">{error}</p>}
 
       <div className="mt-6 min-h-0 flex-1 pb-[10px]">
         <DataGrid

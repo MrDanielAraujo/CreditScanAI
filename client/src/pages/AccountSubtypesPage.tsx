@@ -5,16 +5,17 @@ import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { Drawer } from '../components/common/Drawer'
 import { TrashIcon } from '../components/common/icons'
 import { BookmarkIcon } from '../components/common/navIcons'
+import { useToast } from '../contexts/toastContextValue'
 import { accountSubtypesApi, accountTypesApi } from '../services/registrationsApi'
 import type { AccountSubtype, AccountType, UpsertAccountSubtypeRequest } from '../types/registrations'
 
 const emptyForm: UpsertAccountSubtypeRequest = { accountTypeId: '', code: '', name: '', description: '', sequenceOrder: null }
 
 export function AccountSubtypesPage() {
+  const { showToast } = useToast()
   const [items, setItems] = useState<AccountSubtype[]>([])
   const [types, setTypes] = useState<AccountType[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState<UpsertAccountSubtypeRequest>(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -27,11 +28,11 @@ export function AccountSubtypesPage() {
         setTypes(accountTypes)
         setForm((prev) => (prev.accountTypeId ? prev : { ...prev, accountTypeId: accountTypes[0]?.id ?? '' }))
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar'))
+      .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao carregar', 'error'))
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(load, [showToast])
 
   const typeName = (id: string) => types.find((t) => t.id === id)?.name ?? id
 
@@ -54,7 +55,6 @@ export function AccountSubtypesPage() {
   }
 
   const handleSubmit = async () => {
-    setError(null)
     try {
       if (editingId) {
         await accountSubtypesApi.update(editingId, form)
@@ -65,18 +65,17 @@ export function AccountSubtypesPage() {
       setDrawerOpen(false)
       load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar')
+      showToast(err instanceof Error ? err.message : 'Erro ao salvar', 'error')
     }
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('Excluir este Subtipo?')) return
-    setError(null)
     try {
       await accountSubtypesApi.remove(id)
       load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao excluir')
+      showToast(err instanceof Error ? err.message : 'Erro ao excluir', 'error')
     }
   }
 
@@ -123,8 +122,6 @@ export function AccountSubtypesPage() {
         </div>
         <Button onClick={openCreateDrawer}>Novo Subtipo</Button>
       </div>
-
-      {error && <p className="mt-3 text-sm text-error">{error}</p>}
 
       <div className="mt-6 min-h-0 flex-1 pb-[10px]">
         <DataGrid

@@ -5,15 +5,16 @@ import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { Drawer } from '../components/common/Drawer'
 import { TrashIcon } from '../components/common/icons'
 import { BookIcon } from '../components/common/navIcons'
+import { useToast } from '../contexts/toastContextValue'
 import { chartOfAccountsApi } from '../services/registrationsApi'
 import type { ChartOfAccounts, UpsertChartOfAccountsRequest } from '../types/registrations'
 
 const emptyForm: UpsertChartOfAccountsRequest = { name: '', description: '' }
 
 export function ChartOfAccountsPage() {
+  const { showToast } = useToast()
   const [items, setItems] = useState<ChartOfAccounts[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState<UpsertChartOfAccountsRequest>(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -23,11 +24,11 @@ export function ChartOfAccountsPage() {
     chartOfAccountsApi
       .list()
       .then(setItems)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar'))
+      .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao carregar', 'error'))
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(load, [showToast])
 
   const openCreateDrawer = () => {
     setEditingId(null)
@@ -42,7 +43,6 @@ export function ChartOfAccountsPage() {
   }
 
   const handleSubmit = async () => {
-    setError(null)
     try {
       if (editingId) {
         await chartOfAccountsApi.update(editingId, form)
@@ -52,28 +52,26 @@ export function ChartOfAccountsPage() {
       setDrawerOpen(false)
       load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar')
+      showToast(err instanceof Error ? err.message : 'Erro ao salvar', 'error')
     }
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('Excluir este Plano de Contas?')) return
-    setError(null)
     try {
       await chartOfAccountsApi.remove(id)
       load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao excluir')
+      showToast(err instanceof Error ? err.message : 'Erro ao excluir', 'error')
     }
   }
 
   const handleSetDefault = async (id: string) => {
-    setError(null)
     try {
       await chartOfAccountsApi.setDefault(id)
       load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao definir padrão')
+      showToast(err instanceof Error ? err.message : 'Erro ao definir padrão', 'error')
     }
   }
 
@@ -138,8 +136,6 @@ export function ChartOfAccountsPage() {
         </div>
         <Button onClick={openCreateDrawer}>Novo Plano</Button>
       </div>
-
-      {error && <p className="mt-3 text-sm text-error">{error}</p>}
 
       <div className="mt-6 min-h-0 flex-1 pb-[10px]">
         <DataGrid

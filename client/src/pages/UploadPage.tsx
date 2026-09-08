@@ -4,6 +4,7 @@ import { UploadIcon } from '../components/common/navIcons'
 import { Dropzone } from '../components/documents/Dropzone'
 import { ProcessingStatus } from '../components/documents/ProcessingStatus'
 import { ResultView } from '../components/documents/ResultView'
+import { useToast } from '../contexts/toastContextValue'
 import { getDocumentResult, getDocumentStatus, uploadDocument } from '../services/documentsApi'
 import type { DocumentResultResponse, ExtractionStatus } from '../types/documents'
 
@@ -21,6 +22,7 @@ function formatCnpj(rawValue: string): string {
 }
 
 export function UploadPage() {
+  const { showToast } = useToast()
   const [file, setFile] = useState<File | null>(null)
   const [cnpj, setCnpj] = useState('')
 
@@ -28,8 +30,6 @@ export function UploadPage() {
   const [status, setStatus] = useState<ExtractionStatus | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
   const [result, setResult] = useState<DocumentResultResponse | null>(null)
-  const [submitError, setSubmitError] = useState<string | null>(null)
-  const [submitMessage, setSubmitMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const pollHandle = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -65,18 +65,16 @@ export function UploadPage() {
     if (!file || cnpjDigits.length !== 14) return
 
     setIsSubmitting(true)
-    setSubmitError(null)
-    setSubmitMessage(null)
 
     try {
       const response = await uploadDocument(file, cnpj)
       setDocumentId(response.documentId)
       setStatus(response.status)
       if (response.companyCreated) {
-        setSubmitMessage('Nenhuma empresa tinha esse CNPJ - cadastramos uma nova automaticamente.')
+        showToast('Nenhuma empresa tinha esse CNPJ - cadastramos uma nova automaticamente.', 'success')
       }
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Erro ao enviar documento')
+      showToast(err instanceof Error ? err.message : 'Erro ao enviar documento', 'error')
     } finally {
       setIsSubmitting(false)
     }
@@ -88,8 +86,6 @@ export function UploadPage() {
     setStatus(null)
     setStatusError(null)
     setResult(null)
-    setSubmitError(null)
-    setSubmitMessage(null)
   }
 
   const isProcessing = documentId !== null
@@ -122,8 +118,6 @@ export function UploadPage() {
             </p>
           </div>
 
-          {submitError && <p className="text-sm text-error">{submitError}</p>}
-
           <Button onClick={handleSubmit} disabled={!file || cnpjDigits.length !== 14 || isSubmitting} loading={isSubmitting}>
             Fazer Upload
           </Button>
@@ -132,7 +126,6 @@ export function UploadPage() {
 
       {isProcessing && (
         <div className="mt-6 max-w-4xl space-y-4">
-          {submitMessage && <p className="text-sm text-success">{submitMessage}</p>}
           {status && <ProcessingStatus status={status} error={statusError} />}
 
           {result && (

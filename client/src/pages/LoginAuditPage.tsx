@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { DataGrid } from '../components/common/DataGrid/DataGrid'
 import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { ShieldIcon } from '../components/common/navIcons'
+import { useToast } from '../contexts/toastContextValue'
 import { authApi } from '../services/authApi'
 import type { LoginAuditEntry } from '../types/auth'
 
@@ -12,17 +13,17 @@ function formatDate(iso: string): string {
 const STATUS_OPTIONS = ['Sucesso', 'Falha']
 
 export function LoginAuditPage() {
+  const { showToast } = useToast()
   const [entries, setEntries] = useState<LoginAuditEntry[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     authApi
       .getLoginAudit()
       .then(setEntries)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar auditoria'))
+      .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao carregar auditoria', 'error'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [showToast])
 
   const columns: DataGridColumn<LoginAuditEntry>[] = [
     { key: 'email', label: 'Email' },
@@ -45,8 +46,6 @@ export function LoginAuditPage() {
         Auditoria de Login
       </h1>
       <p className="mt-2 text-neutral">Tentativas de login recentes, com sucesso ou falha. Só Admin e Compliance têm acesso.</p>
-
-      {error && <p className="mt-3 text-sm text-error">{error}</p>}
 
       <div className="mt-6 min-h-0 flex-1 pb-[10px]">
         <DataGrid

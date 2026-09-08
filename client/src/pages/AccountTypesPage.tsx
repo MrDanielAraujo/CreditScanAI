@@ -5,15 +5,16 @@ import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { Drawer } from '../components/common/Drawer'
 import { TrashIcon } from '../components/common/icons'
 import { GridIcon } from '../components/common/navIcons'
+import { useToast } from '../contexts/toastContextValue'
 import { accountTypesApi } from '../services/registrationsApi'
 import type { AccountType, UpsertAccountTypeRequest } from '../types/registrations'
 
 const emptyForm: UpsertAccountTypeRequest = { code: '', name: '', description: '', sequenceOrder: null }
 
 export function AccountTypesPage() {
+  const { showToast } = useToast()
   const [items, setItems] = useState<AccountType[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState<UpsertAccountTypeRequest>(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -23,11 +24,11 @@ export function AccountTypesPage() {
     accountTypesApi
       .list()
       .then(setItems)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar'))
+      .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao carregar', 'error'))
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(load, [showToast])
 
   const openCreateDrawer = () => {
     setEditingId(null)
@@ -42,7 +43,6 @@ export function AccountTypesPage() {
   }
 
   const handleSubmit = async () => {
-    setError(null)
     try {
       if (editingId) {
         await accountTypesApi.update(editingId, form)
@@ -52,18 +52,17 @@ export function AccountTypesPage() {
       setDrawerOpen(false)
       load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar')
+      showToast(err instanceof Error ? err.message : 'Erro ao salvar', 'error')
     }
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('Excluir este Tipo?')) return
-    setError(null)
     try {
       await accountTypesApi.remove(id)
       load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao excluir')
+      showToast(err instanceof Error ? err.message : 'Erro ao excluir', 'error')
     }
   }
 
@@ -108,8 +107,6 @@ export function AccountTypesPage() {
         </div>
         <Button onClick={openCreateDrawer}>Novo Tipo</Button>
       </div>
-
-      {error && <p className="mt-3 text-sm text-error">{error}</p>}
 
       <div className="mt-6 min-h-0 flex-1 pb-[10px]">
         <DataGrid

@@ -5,6 +5,7 @@ import type { DataGridColumn } from '../components/common/DataGrid/types'
 import { Drawer } from '../components/common/Drawer'
 import { KeyIcon, LockIcon, UnlockIcon } from '../components/common/icons'
 import { UsersIcon } from '../components/common/navIcons'
+import { useToast } from '../contexts/toastContextValue'
 import { usersApi } from '../services/usersApi'
 import type { CreateUserRequest, UserListItem, UserRole } from '../types/users'
 
@@ -15,27 +16,25 @@ function buildEmptyForm(): CreateUserRequest {
 }
 
 export function UsersManagementPage() {
+  const { showToast } = useToast()
   const [items, setItems] = useState<UserListItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState<CreateUserRequest>(buildEmptyForm())
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const [resetPasswordFor, setResetPasswordFor] = useState<string | null>(null)
   const [newPassword, setNewPassword] = useState('')
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [actionMessage, setActionMessage] = useState<string | null>(null)
 
   const load = () => {
     setLoading(true)
     usersApi
       .list()
       .then(setItems)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar usuários'))
+      .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao carregar usuários', 'error'))
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(load, [showToast])
 
   const openCreateDrawer = () => {
     setForm(buildEmptyForm())
@@ -43,30 +42,25 @@ export function UsersManagementPage() {
   }
 
   const handleCreate = async () => {
-    setError(null)
     try {
       await usersApi.create(form)
       setDrawerOpen(false)
       load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao criar usuário')
+      showToast(err instanceof Error ? err.message : 'Erro ao criar usuário', 'error')
     }
   }
 
   const handleRoleChange = async (id: string, role: UserRole) => {
-    setActionError(null)
-    setActionMessage(null)
     try {
       await usersApi.updateRole(id, { role })
       load()
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Erro ao alterar papel')
+      showToast(err instanceof Error ? err.message : 'Erro ao alterar papel', 'error')
     }
   }
 
   const handleToggleLock = async (item: UserListItem) => {
-    setActionError(null)
-    setActionMessage(null)
     try {
       if (item.isLockedOut) {
         await usersApi.unlock(item.id)
@@ -75,20 +69,18 @@ export function UsersManagementPage() {
       }
       load()
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Erro ao alterar acesso')
+      showToast(err instanceof Error ? err.message : 'Erro ao alterar acesso', 'error')
     }
   }
 
   const handleResetPassword = async (id: string) => {
-    setActionError(null)
-    setActionMessage(null)
     try {
       const res = await usersApi.resetPassword(id, { newPassword })
-      setActionMessage(res.message)
+      showToast(res.message, 'success')
       setResetPasswordFor(null)
       setNewPassword('')
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Erro ao redefinir senha')
+      showToast(err instanceof Error ? err.message : 'Erro ao redefinir senha', 'error')
     }
   }
 
@@ -184,10 +176,6 @@ export function UsersManagementPage() {
         </div>
         <Button onClick={openCreateDrawer}>Novo Usuário</Button>
       </div>
-
-      {error && <p className="mt-3 text-sm text-error">{error}</p>}
-      {actionMessage && <p className="mt-3 text-sm text-success">{actionMessage}</p>}
-      {actionError && <p className="mt-3 text-sm text-error">{actionError}</p>}
 
       <div className="mt-6 min-h-0 flex-1 pb-[10px]">
         <DataGrid

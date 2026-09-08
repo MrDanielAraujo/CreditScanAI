@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { accentBadgeClasses, accentTopBorderClasses, type Accent } from '../components/common/accentColors'
 import { CheckCircleIcon, TrashIcon, TrendingUpIcon } from '../components/common/icons'
 import { BookmarkIcon, CheckSquareIcon, GridIcon, LayersIcon, LightbulbIcon, TagIcon } from '../components/common/navIcons'
+import { useToast } from '../contexts/toastContextValue'
 import { learningApi } from '../services/learningApi'
 import type { LearningStats } from '../types/learning'
 
@@ -119,17 +120,17 @@ function TopAccountsList({
 }
 
 export function LearningPage() {
+  const { showToast } = useToast()
   const [stats, setStats] = useState<LearningStats | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     learningApi
       .getStats()
       .then(setStats)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar estatísticas'))
+      .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao carregar estatísticas', 'error'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [showToast])
 
   return (
     <div>
@@ -142,7 +143,6 @@ export function LearningPage() {
       </p>
 
       {loading && <p className="mt-6 text-sm text-neutral">Carregando...</p>}
-      {error && <p className="mt-6 text-sm text-error">{error}</p>}
 
       {!loading && stats && (
         <div>

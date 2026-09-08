@@ -1,17 +1,17 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '../components/common/Button'
+import { useToast } from '../contexts/toastContextValue'
 import { authApi } from '../services/authApi'
 
 export function ResetPasswordPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const { showToast } = useToast()
   const email = searchParams.get('email') ?? ''
   const token = searchParams.get('token') ?? ''
 
   const [newPassword, setNewPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   const missingLinkData = !email || !token
@@ -19,13 +19,12 @@ export function ResetPasswordPage() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     setLoading(true)
-    setError(null)
     try {
       const res = await authApi.resetPassword({ email, token, newPassword })
-      setMessage(res.message)
+      showToast(res.message, 'success')
       setTimeout(() => navigate('/login'), 1500)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao redefinir a senha')
+      showToast(err instanceof Error ? err.message : 'Erro ao redefinir a senha', 'error')
     } finally {
       setLoading(false)
     }
@@ -59,9 +58,6 @@ export function ResetPasswordPage() {
               className="mt-1 w-full h-10 rounded-md border border-neutral/30 px-3 py-2 text-sm"
             />
             <p className="mt-1 text-xs text-neutral">Mínimo de 8 caracteres.</p>
-
-            {message && <p className="mt-3 text-sm text-success">{message}</p>}
-            {error && <p className="mt-3 text-sm text-error">{error}</p>}
 
             <Button type="submit" className="mt-6 w-full" loading={loading}>
               Redefinir senha
